@@ -24,7 +24,6 @@ func (bc *Client) processMessages(messages chan *common.UserDataStreamPayload) {
 		logger = bc.sugar.With("func", caller.GetCurrentFunctionName())
 	)
 	for m := range messages {
-		log.Printf("%s", m)
 		switch m.EventType {
 		case outboundAccountInfo:
 			payload := common.OutBoundAccountInfo{}
