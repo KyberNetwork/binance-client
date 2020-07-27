@@ -1,6 +1,7 @@
 package binance
 
 import (
+	"github.com/KyberNetwork/binance_user_data_stream/common"
 	"github.com/urfave/cli"
 	"go.uber.org/zap"
 )
@@ -27,11 +28,11 @@ func NewBinanceFlags() []cli.Flag {
 }
 
 // NewBinanceClientFromContext create binance client from flags
-func NewBinanceClientFromContext(c *cli.Context, sugar *zap.SugaredLogger) *Client {
+func NewBinanceClientFromContext(c *cli.Context, sugar *zap.SugaredLogger, accountInfoStore *common.AccountInfoStore) *Client {
 
 	// TODO: add validation
 	binanceKey := c.String(binanceKeyFlag)
 	binanceSecret := c.String(binanceSecretFlag)
 
-	return NewBinanceClient(binanceKey, binanceSecret, sugar)
+	return NewBinanceClient(binanceKey, binanceSecret, sugar, accountInfoStore)
 }

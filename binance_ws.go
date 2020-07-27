@@ -1,14 +1,13 @@
 package binance
 
 import (
-	"encoding/json"
 	"fmt"
 	"log"
 	"time"
 
+	"github.com/buger/jsonparser"
 	ws "github.com/gorilla/websocket"
 
-	"github.com/KyberNetwork/binance_user_data_stream/common"
 	"github.com/KyberNetwork/binance_user_data_stream/lib/caller"
 )
 
@@ -19,43 +18,40 @@ const (
 	executionReport         = "executionReport"
 )
 
-func (bc *Client) processMessages(messages chan *common.UserDataStreamPayload) {
+func (bc *Client) processMessages(messages chan []byte) {
 	var (
 		logger = bc.sugar.With("func", caller.GetCurrentFunctionName())
 	)
 	for m := range messages {
-		switch m.EventType {
+		eventType, err := jsonparser.GetString(m, "e")
+		if err != nil {
+			logger.Errorw("failed to get eventType", "error", err)
+			return
+		}
+		switch eventType {
 		case outboundAccountInfo:
-			payload := common.OutBoundAccountInfo{}
-			if err := json.Unmarshal(m.Payload, &payload); err != nil {
-				logger.Errorw("failed to unmarshal outbound account info", "error", err)
+			if err := bc.accountInfoStore.UpdateAccountInfo(m); err != nil {
+				logger.Errorw("failed to update account info", "error", err)
 				return
 			}
-			//TODO:
 		case outboundAccountPosition:
-			payload := common.OutboundAccountPosition{}
-			if err := json.Unmarshal(m.Payload, &payload); err != nil {
-				logger.Errorw("failed to unmarshal outbound account position", "error", err)
+			if err := bc.accountInfoStore.UpdateBalance(m); err != nil {
+				logger.Errorw("failed to update balance info", "error", err)
 				return
 			}
 		case balanceUpdate:
-			payload := common.BalanceUpdate{}
-			if err := json.Unmarshal(m.Payload, &payload); err != nil {
-				logger.Errorw("failed to unmarshal balance update", "error", err)
+			if err := bc.accountInfoStore.UpdateBalanceDelta(m); err != nil {
+				logger.Errorw("failed to update account balance delta", "error", err)
 				return
 			}
 		case executionReport:
-			payload := common.ExecutionReport{}
-			if err := json.Unmarshal(m.Payload, &payload); err != nil {
-				logger.Errorw("failed to unmarshal balance update", "error", err)
-				return
-			}
+			//TODO: handle later
 		}
 	}
 }
 
 // SubscribeDataStream subscribe to a data stream
-func (bc *Client) SubscribeDataStream(listenKey string, messages chan<- *common.UserDataStreamPayload) error {
+func (bc *Client) SubscribeDataStream(listenKey string, messages chan<- []byte) error {
 	var (
 		logger   = bc.sugar.With("func", caller.GetCurrentFunctionName())
 		wsDialer ws.Dialer
@@ -70,16 +66,15 @@ func (bc *Client) SubscribeDataStream(listenKey string, messages chan<- *common.
 	tm := time.NewTimer(time.Second)
 	tm.Stop()
 	for {
-		message := common.UserDataStreamPayload{}
-		err := wsConn.ReadJSON(&message)
+		_, m, err := wsConn.ReadMessage()
 		if err != nil {
 			logger.Errorw("read message error", "err", err)
 			return err
 		}
+		log.Printf("%s \n", m)
 		tm.Reset(time.Second)
-		log.Printf("%s", message)
 		select {
-		case messages <- &message:
+		case messages <- m:
 			if !tm.Stop() {
 				<-tm.C
 			}
@@ -91,7 +86,7 @@ func (bc *Client) SubscribeDataStream(listenKey string, messages chan<- *common.
 
 // Run the websocket
 func (bc *Client) Run(listenKey string) error {
-	messages := make(chan *common.UserDataStreamPayload, 256)
+	messages := make(chan []byte, 256)
 	go bc.processMessages(messages)
 	return bc.SubscribeDataStream(listenKey, messages)
 }
