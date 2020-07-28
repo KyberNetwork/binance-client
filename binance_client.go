@@ -11,6 +11,7 @@ import (
 	"time"
 
 	ethereum "github.com/ethereum/go-ethereum/common"
+	"github.com/pkg/errors"
 	"go.uber.org/zap"
 
 	"github.com/KyberNetwork/binance_user_data_stream/common"
@@ -57,27 +58,43 @@ func (bc *Client) CreateListenKey() (string, error) {
 	req, err := http.NewRequest(http.MethodPost, requestURL, nil)
 	if err != nil {
 		logger.Errorw("failed to create request to create listen key", "error", err)
+		return "",err
 	}
 	req.Header.Set("X-MBX-APIKEY", bc.apiKey)
-	resp, err := bc.httpClient.Do(req)
+
+	err = bc.doRequest(req, logger, &listenKey)
 	if err != nil {
-		logger.Errorw("failed to do the request to create listen key", "error", err)
 		return "", err
 	}
+	return listenKey.ListenKey, nil
+}
+
+func (bc *Client) doRequest(req *http.Request, logger *zap.SugaredLogger, data interface{}) error {
+	resp, err := bc.httpClient.Do(req)
+	if err != nil {
+		logger.Errorw("failed to execute the request", "error", err)
+		return errors.Wrap(err,"failed to execute the request")
+	}
+	respBody, err := ioutil.ReadAll(resp.Body)
+	if err != nil {
+		logger.Errorw("failed to read response body", "error", err)
+		return err
+	}
+	_ = resp.Body.Close()
 	switch resp.StatusCode {
 	case http.StatusOK:
-		respBody, err := ioutil.ReadAll(resp.Body)
-		if err != nil {
-			logger.Errorw("failed to read response body", "error", err)
-			return "", err
+		if data==nil{// if data == nil then caller does not care about response body, consider as success
+			return nil
 		}
-		if err := json.Unmarshal(respBody, &listenKey); err != nil {
-			logger.Errorw("failed to parse json into struct", "error", err)
+		if err = json.Unmarshal(respBody, data); err != nil {
+			logger.Errorw("failed to parse data into struct", "error", err)
+			return errors.Wrap(err,"failed to parse data into struct")
 		}
 	default:
-		logger.Errorw("got unexpected status code", "code", resp.StatusCode)
+		logger.Errorw("got unexpected status code", "code", resp.StatusCode,"responseBody",string(respBody))
+		return fmt.Errorf("got unexpected status code %d, body=%s",resp.StatusCode,string(respBody))
 	}
-	return listenKey.ListenKey, nil
+	return nil
 }
 
 // KeepListenKeyAlive keep it alive
@@ -92,18 +109,7 @@ func (bc *Client) KeepListenKeyAlive() error {
 		return err
 	}
 	req.Header.Set("X-MBX-APIKEY", bc.apiKey)
-	resp, err := bc.httpClient.Do(req)
-	if err != nil {
-		logger.Errorw("failed to do the request to keep the key alive", "error", err)
-		return err
-	}
-	switch resp.StatusCode {
-	case http.StatusOK:
-		return nil
-	default:
-		logger.Errorw("got unexpected status code", "code", resp.StatusCode)
-		return fmt.Errorf("failed with status code %d", resp.StatusCode)
-	}
+	return bc.doRequest(req,logger,nil)
 }
 
 // Sign the request
@@ -141,23 +147,6 @@ func (bc *Client) GetAccountInfo() (common.BinanceAccountInfo, error) {
 	sig.Set("signature", bc.Sign(q.Encode()))
 	req.URL.RawQuery = q.Encode() + "&" + sig.Encode()
 
-	resp, err := bc.httpClient.Do(req)
-	if err != nil {
-		logger.Errorw("failed to do get account info request", "error", err)
-	}
-	switch resp.StatusCode {
-	case http.StatusOK:
-		respBody, err := ioutil.ReadAll(resp.Body)
-		if err != nil {
-			logger.Errorw("failed to read response body", "error", err)
-			return response, err
-		}
-		if err := json.Unmarshal(respBody, &response); err != nil {
-			return response, err
-		}
-	default:
-		logger.Errorw("got unexpected status code", "code", resp.StatusCode)
-		return response, fmt.Errorf("failed with status code %d", resp.StatusCode)
-	}
-	return response, nil
+	err = bc.doRequest(req,logger,&response)
+	return response, err
 }
