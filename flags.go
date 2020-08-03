@@ -1,7 +1,7 @@
 package binance
 
 import (
-	"github.com/KyberNetwork/binance_user_data_stream/common"
+	"github.com/KyberNetwork/cex_account_data/common"
 	"github.com/urfave/cli"
 	"go.uber.org/zap"
 )

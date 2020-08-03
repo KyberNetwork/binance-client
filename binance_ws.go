@@ -10,8 +10,8 @@ import (
 	ws "github.com/gorilla/websocket"
 	"go.uber.org/zap"
 
-	"github.com/KyberNetwork/binance_user_data_stream/common"
-	"github.com/KyberNetwork/binance_user_data_stream/lib/caller"
+	"github.com/KyberNetwork/cex_account_data/common"
+	"github.com/KyberNetwork/cex_account_data/lib/caller"
 )
 
 const (
@@ -34,8 +34,8 @@ func (bc *Client) processMessages(messages chan []byte) {
 		switch eventType {
 		case outboundAccountInfo:
 			var ai common.BinanceAccountInfo
-			if err = bc.parseAccountInfo(m,&ai);err!=nil {
-				logger.Errorw("failed to parse account info","err",err)
+			if err = bc.parseAccountInfo(m, &ai); err != nil {
+				logger.Errorw("failed to parse account info", "err", err)
 				return
 			}
 			if err := bc.accountInfoStore.UpdateAccountInfo(&ai); err != nil {
@@ -80,7 +80,7 @@ func (bc *Client) parseAccountBalance(m []byte, logger *zap.SugaredLogger, balan
 	return false
 }
 
-func (bc *Client) parseAccountInfo(data []byte,accountInfo *common.BinanceAccountInfo) error {
+func (bc *Client) parseAccountInfo(data []byte, accountInfo *common.BinanceAccountInfo) error {
 	var err error
 	accountInfo.MakerCommission, err = jsonparser.GetInt(data, "m")
 	if err != nil {
