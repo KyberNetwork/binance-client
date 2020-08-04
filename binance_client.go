@@ -98,11 +98,11 @@ func (bc *Client) doRequest(req *http.Request, logger *zap.SugaredLogger, data i
 }
 
 // KeepListenKeyAlive keep it alive
-func (bc *Client) KeepListenKeyAlive() error {
+func (bc *Client) KeepListenKeyAlive(listenKey string) error {
 	var (
 		logger = bc.sugar.With("func", caller.GetCurrentFunctionName())
 	)
-	requestURL := fmt.Sprintf("%s/api/v3/userDataStream", apiBaseURL)
+	requestURL := fmt.Sprintf("%s/api/v3/userDataStream?listenKey=%s", apiBaseURL, listenKey)
 	req, err := http.NewRequest(http.MethodPut, requestURL, nil)
 	if err != nil {
 		logger.Errorw("failed to create new request for keep listen key alive", "error", err)
