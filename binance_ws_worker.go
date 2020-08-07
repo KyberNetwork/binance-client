@@ -27,9 +27,10 @@ type AccountDataWorker struct {
 	accountInfoStore *common.BinanceAccountInfoStore
 }
 
-func NewAccountDataWorker(sugar *zap.SugaredLogger, apiKey, apiSecret string, store *common.BinanceAccountInfoStore) *AccountDataWorker {
+func NewAccountDataWorker(sugar *zap.SugaredLogger, store *common.BinanceAccountInfoStore,
+	respClient *Client) *AccountDataWorker {
 	return &AccountDataWorker{
-		restClient:       NewBinanceClient(apiKey, apiSecret, sugar),
+		restClient:       respClient,
 		sugar:            sugar,
 		accountInfoStore: store,
 	}
@@ -47,12 +48,12 @@ func (bc *AccountDataWorker) processMessages(messages chan []byte) {
 		}
 		switch eventType {
 		case outboundAccountInfo:
-			var ai common.BinanceAccountInfo
-			if err = bc.parseAccountInfo(m, &ai); err != nil {
+			var ai common.AccountState
+			if err = bc.parseAccountState(m, &ai); err != nil {
 				logger.Errorw("failed to parse account info", "err", err)
 				return
 			}
-			if err := bc.accountInfoStore.SetAccountInfo(&ai); err != nil {
+			if err := bc.accountInfoStore.SetAccountState(&ai); err != nil {
 				logger.Errorw("failed to update account info", "error", err)
 				return
 			}
@@ -76,9 +77,129 @@ func (bc *AccountDataWorker) processMessages(messages chan []byte) {
 				return
 			}
 		case executionReport:
-			// TODO: handle later
+			fmt.Println("executionReport", string(m))
+			o, err := parseAccountOrder(m)
+			if err != nil {
+				logger.Errorw("failed to parse order info", "err", err)
+				return
+			}
+
+			if err = bc.accountInfoStore.UpdateOrder(o); err != nil {
+				logger.Errorw("failed to update order info", "err", err)
+				return
+			}
 		}
 	}
+}
+
+func parseAccountOrder(m []byte) (*common.ExecutionReport, error) {
+	e := common.ExecutionReport{}
+	var err error
+	e.EventTime, err = jsonparser.GetInt(m, "E")
+	if err != nil {
+		return nil, err
+	}
+	e.Symbol, err = jsonparser.GetString(m, "s")
+	if err != nil {
+		return nil, err
+	}
+	e.ClientOrderID, err = jsonparser.GetString(m, "c")
+	if err != nil {
+		return nil, err
+	}
+	e.Side, err = jsonparser.GetString(m, "S")
+	if err != nil {
+		return nil, err
+	}
+	e.OrderType, err = jsonparser.GetString(m, "o")
+	if err != nil {
+		return nil, err
+	}
+	e.TimeInForce, err = jsonparser.GetString(m, "f")
+	if err != nil {
+		return nil, err
+	}
+	e.Quantity, err = jsonparser.GetString(m, "q")
+	if err != nil {
+		return nil, err
+	}
+	e.Price, err = jsonparser.GetString(m, "p")
+	if err != nil {
+		return nil, err
+	}
+	e.StopPrice, err = jsonparser.GetString(m, "P")
+	if err != nil {
+		return nil, err
+	}
+	e.IcebergQuantity, err = jsonparser.GetString(m, "F")
+	if err != nil {
+		return nil, err
+	}
+	e.OrderListID, err = jsonparser.GetInt(m, "g")
+	if err != nil {
+		return nil, err
+	}
+	e.OriginalClientOrderID, err = jsonparser.GetString(m, "C")
+	if err != nil {
+		return nil, err
+	}
+	e.CurrentExecutionType, err = jsonparser.GetString(m, "x")
+	if err != nil {
+		return nil, err
+	}
+	e.CurrentOrderStatus, err = jsonparser.GetString(m, "X")
+	if err != nil {
+		return nil, err
+	}
+	e.RejectReason, err = jsonparser.GetString(m, "r")
+	if err != nil {
+		return nil, err
+	}
+	e.OrderID, err = jsonparser.GetInt(m, "i")
+	if err != nil {
+		return nil, err
+	}
+	e.LastExecutedQuantity, err = jsonparser.GetString(m, "l")
+	if err != nil {
+		return nil, err
+	}
+	e.CumulativeFilledQuantity, err = jsonparser.GetString(m, "z")
+	if err != nil {
+		return nil, err
+	}
+	e.LastExecutedPrice, err = jsonparser.GetString(m, "L")
+	if err != nil {
+		return nil, err
+	}
+	e.CommissionAmount, err = jsonparser.GetString(m, "n")
+	if err != nil {
+		return nil, err
+	}
+	e.TransactionTime, err = jsonparser.GetInt(m, "T")
+	if err != nil {
+		return nil, err
+	}
+	e.TradeID, err = jsonparser.GetInt(m, "t")
+	if err != nil {
+		return nil, err
+	}
+	e.OrderCreationTime, err = jsonparser.GetInt(m, "O")
+	if err != nil {
+		return nil, err
+	}
+	e.QuoteOrderQty, err = jsonparser.GetString(m, "Q")
+	if err != nil {
+		return nil, err
+	}
+	e.CumulativeQuoteAssetTransactedQuantity, err = jsonparser.GetString(m, "Z")
+	if err != nil {
+		return nil, err
+	}
+	e.IsOrderInTheBook, err = jsonparser.GetBoolean(m, "w")
+	if err != nil {
+		return nil, err
+	}
+	return &e, nil
 }
 
 func (bc *AccountDataWorker) parseAccountBalance(m []byte, logger *zap.SugaredLogger, balance []*common.PayloadBalance) bool {
@@ -94,7 +215,7 @@ func (bc *AccountDataWorker) parseAccountBalance(m []byte, logger *zap.SugaredLo
 	return false
 }
 
-func (bc *AccountDataWorker) parseAccountInfo(data []byte, accountInfo *common.BinanceAccountInfo) error {
+func (bc *AccountDataWorker) parseAccountState(data []byte, accountInfo *common.AccountState) error {
 	var err error
 	accountInfo.MakerCommission, err = jsonparser.GetInt(data, "m")
 	if err != nil {
@@ -194,12 +315,24 @@ func (bc *AccountDataWorker) initWSSession() (string, error) {
 	}
 	bc.sugar.Info("listen key ", listenKey)
 	// init account info
-	binanceAccountInfo, err := bc.restClient.GetAccountInfo()
+	accountState, err := bc.restClient.GetAccountState()
 	if err != nil {
 		bc.sugar.Errorw("failed to init account info", "error", err)
 		return "", err
 	}
-	_ = bc.accountInfoStore.SetAccountInfo(&binanceAccountInfo)
+	orders, err := bc.restClient.GetOpenOrders()
+	if err != nil {
+		bc.sugar.Errorw("failed to read open orders", "err", err)
+		return "", err
+	}
+	info := &common.BinanceAccountInfo{
+		State:     &accountState,
+		OpenOrder: make(map[string]*common.OpenOrder),
+	}
+	for _, o := range orders {
+		info.OpenOrder[o.ClientOrderId] = o
+	}
+	bc.accountInfoStore.SetData(info)
 	return listenKey, nil
 }
 

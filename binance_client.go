@@ -8,6 +8,7 @@ import (
 	"io/ioutil"
 	"net/http"
 	"net/url"
+	"strconv"
 	"time"
 
 	ethereum "github.com/ethereum/go-ethereum/common"
@@ -124,11 +125,11 @@ func getTimepoint() uint64 {
 	return uint64(time.Now().UnixNano()) / uint64(time.Millisecond)
 }
 
-// GetAccountInfo return account info
-func (bc *Client) GetAccountInfo() (common.BinanceAccountInfo, error) {
+// GetAccountState return account info
+func (bc *Client) GetAccountState() (common.AccountState, error) {
 	var (
 		logger   = bc.sugar.With("func", caller.GetCurrentFunctionName())
-		response common.BinanceAccountInfo
+		response common.AccountState
 	)
 	requestURL := fmt.Sprintf("%s/api/v3/account", apiBaseURL)
 	req, err := http.NewRequest(http.MethodGet, requestURL, nil)
@@ -147,4 +148,53 @@ func (bc *Client) GetAccountInfo() (common.BinanceAccountInfo, error) {
 
 	err = bc.doRequest(req, logger, &response)
 	return response, err
+}
+
+// GetOpenOrders return account info
+func (bc *Client) GetOpenOrders() ([]*common.OpenOrder, error) {
+	var (
+		logger   = bc.sugar.With("func", caller.GetCurrentFunctionName())
+		response = make([]*common.OpenOrder, 0)
+	)
+	requestURL := fmt.Sprintf("%s/api/v3/openOrders", apiBaseURL)
+	req, err := http.NewRequest(http.MethodGet, requestURL, nil)
+	if err != nil {
+		logger.Errorw("failed to create new request for get account info", "error", err)
+	}
+
+	// sign the request
+	req.Header.Set("X-MBX-APIKEY", bc.apiKey)
+	q := req.URL.Query()
+	sig := url.Values{}
+	q.Set("timestamp", fmt.Sprintf("%d", getTimepoint()))
+	q.Set("recvWindow", "5000")
+	sig.Set("signature", bc.Sign(q.Encode()))
+	req.URL.RawQuery = q.Encode() + "&" + sig.Encode()
+
+	err = bc.doRequest(req, logger, &response)
+	return response, err
+}
+func (bc *Client) OrderStatus(symbol string, id int64) (*common.OpenOrder, error) {
+	result := common.OpenOrder{}
+	requestURL := fmt.Sprintf("%s/api/v3/order", apiBaseURL)
+	req, err := http.NewRequest(http.MethodGet, requestURL, nil)
+	if err != nil {
+		bc.sugar.Errorw("failed to create new request for get account info", "error", err)
+		return nil, err
+	}
+
+	// sign the request
+	req.Header.Set("X-MBX-APIKEY", bc.apiKey)
+	q := req.URL.Query()
+	sig := url.Values{}
+	q.Set("symbol", symbol)
+	q.Set("orderId", strconv.Itoa(int(id)))
+	q.Set("timestamp", fmt.Sprintf("%d", getTimepoint()))
+	q.Set("recvWindow", "5000")
+	sig.Set("signature", bc.Sign(q.Encode()))
+	req.URL.RawQuery = q.Encode() + "&" + sig.Encode()
+
+	err = bc.doRequest(req, bc.sugar, &result)
+
+	return &result, err
 }
