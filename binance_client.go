@@ -25,21 +25,19 @@ const (
 
 // Client to interact with binance api
 type Client struct {
-	httpClient       *http.Client
-	apiKey           string
-	secretKey        string
-	sugar            *zap.SugaredLogger
-	accountInfoStore *common.AccountInfoStore
+	httpClient *http.Client
+	apiKey     string
+	secretKey  string
+	sugar      *zap.SugaredLogger
 }
 
 // NewBinanceClient create new client object
-func NewBinanceClient(key, secret string, sugar *zap.SugaredLogger, accountInfoStore *common.AccountInfoStore) *Client {
+func NewBinanceClient(key, secret string, sugar *zap.SugaredLogger) *Client {
 	return &Client{
-		httpClient:       &http.Client{Timeout: defaultTimeout},
-		apiKey:           key,
-		secretKey:        secret,
-		sugar:            sugar,
-		accountInfoStore: accountInfoStore,
+		httpClient: &http.Client{Timeout: defaultTimeout},
+		apiKey:     key,
+		secretKey:  secret,
+		sugar:      sugar,
 	}
 }
 

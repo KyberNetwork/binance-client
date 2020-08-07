@@ -21,7 +21,21 @@ const (
 	executionReport         = "executionReport"
 )
 
-func (bc *Client) processMessages(messages chan []byte) {
+type AccountDataWorker struct {
+	restClient       *Client
+	sugar            *zap.SugaredLogger
+	accountInfoStore *common.BinanceAccountInfoStore
+}
+
+func NewAccountDataWorker(sugar *zap.SugaredLogger, apiKey, apiSecret string, store *common.BinanceAccountInfoStore) *AccountDataWorker {
+	return &AccountDataWorker{
+		restClient:       NewBinanceClient(apiKey, apiSecret, sugar),
+		sugar:            sugar,
+		accountInfoStore: store,
+	}
+}
+
+func (bc *AccountDataWorker) processMessages(messages chan []byte) {
 	var (
 		logger = bc.sugar.With("func", caller.GetCurrentFunctionName())
 	)
@@ -38,7 +52,7 @@ func (bc *Client) processMessages(messages chan []byte) {
 				logger.Errorw("failed to parse account info", "err", err)
 				return
 			}
-			if err := bc.accountInfoStore.UpdateAccountInfo(&ai); err != nil {
+			if err := bc.accountInfoStore.SetAccountInfo(&ai); err != nil {
 				logger.Errorw("failed to update account info", "error", err)
 				return
 			}
@@ -67,7 +81,7 @@ func (bc *Client) processMessages(messages chan []byte) {
 	}
 }
 
-func (bc *Client) parseAccountBalance(m []byte, logger *zap.SugaredLogger, balance []*common.PayloadBalance) bool {
+func (bc *AccountDataWorker) parseAccountBalance(m []byte, logger *zap.SugaredLogger, balance []*common.PayloadBalance) bool {
 	balanceByte, _, _, err := jsonparser.Get(m, "B")
 	if err != nil {
 		logger.Errorw("failed to lookup balance", "err", err)
@@ -80,7 +94,7 @@ func (bc *Client) parseAccountBalance(m []byte, logger *zap.SugaredLogger, balan
 	return false
 }
 
-func (bc *Client) parseAccountInfo(data []byte, accountInfo *common.BinanceAccountInfo) error {
+func (bc *AccountDataWorker) parseAccountInfo(data []byte, accountInfo *common.BinanceAccountInfo) error {
 	var err error
 	accountInfo.MakerCommission, err = jsonparser.GetInt(data, "m")
 	if err != nil {
@@ -135,8 +149,8 @@ func (bc *Client) parseAccountInfo(data []byte, accountInfo *common.BinanceAccou
 	return nil
 }
 
-// SubscribeDataStream subscribe to a data stream
-func (bc *Client) SubscribeDataStream(listenKey string, messages chan<- []byte) error {
+// subscribeDataStream subscribe to a data stream
+func (bc *AccountDataWorker) subscribeDataStream(messages chan<- []byte, listenKey string) error {
 	var (
 		logger   = bc.sugar.With("func", caller.GetCurrentFunctionName())
 		wsDialer ws.Dialer
@@ -171,9 +185,56 @@ func (bc *Client) SubscribeDataStream(listenKey string, messages chan<- []byte) 
 	}
 }
 
+func (bc *AccountDataWorker) initWSSession() (string, error) {
+
+	listenKey, err := bc.restClient.CreateListenKey()
+	if err != nil {
+		bc.sugar.Errorw("failed to create listen key", "error", err)
+		return "", err
+	}
+	bc.sugar.Info("listen key ", listenKey)
+	// init account info
+	binanceAccountInfo, err := bc.restClient.GetAccountInfo()
+	if err != nil {
+		bc.sugar.Errorw("failed to init account info", "error", err)
+		return "", err
+	}
+	_ = bc.accountInfoStore.SetAccountInfo(&binanceAccountInfo)
+	return listenKey, nil
+}
+
 // Run the websocket
-func (bc *Client) Run(listenKey string) error {
+func (bc *AccountDataWorker) Run() {
 	messages := make(chan []byte, 256)
 	go bc.processMessages(messages)
-	return bc.SubscribeDataStream(listenKey, messages)
+	go func() {
+		for {
+			key, err := bc.initWSSession()
+			if err != nil {
+				bc.sugar.Errorw("failed to init session", "err", err)
+				time.Sleep(time.Second * 3)
+				// TODO: consider to clear account data when we cant connect to binance
+				continue
+			}
+			updater := bc.keepAliveKey(key)
+			err = bc.subscribeDataStream(messages, key)
+			// we got error mostly cause by connection reset, or binance kick us
+			bc.sugar.Errorw("subscribe data stream broken, retry after seconds")
+			updater.Stop()
+			time.Sleep(time.Second * 5)
+		}
+	}()
+}
+
+func (bc *AccountDataWorker) keepAliveKey(key string) *time.Ticker {
+	t := time.NewTicker(time.Minute * 30)
+	go func() {
+		for range t.C {
+			err := bc.restClient.KeepListenKeyAlive(key)
+			if err != nil {
+				bc.sugar.Errorw("failed to keep listen key alive", "err", err)
+			}
+		}
+	}()
+	return t
 }
