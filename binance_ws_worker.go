@@ -82,7 +82,8 @@ func (bc *AccountDataWorker) processMessages(messages chan []byte) {
 				logger.Errorw("failed to parse order info", "err", err)
 				return
 			}
-
+			logger.Infow("update order state", "order_id", o.ClientOrderID,
+				"state", o.CurrentOrderStatus, "symbol", o.Symbol)
 			if err = bc.accountInfoStore.UpdateOrder(o); err != nil {
 				logger.Errorw("failed to update order info", "err", err)
 				return
