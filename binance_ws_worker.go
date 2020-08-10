@@ -330,7 +330,7 @@ func (bc *AccountDataWorker) initWSSession() (string, error) {
 		OpenOrder: make(map[string]*common.OpenOrder),
 	}
 	for _, o := range orders {
-		info.OpenOrder[o.ClientOrderId] = o
+		info.OpenOrder[o.ClientOrderID] = o
 	}
 	bc.accountInfoStore.SetData(info)
 	return listenKey, nil
@@ -352,9 +352,11 @@ func (bc *AccountDataWorker) Run() {
 			updater := bc.keepAliveKey(key)
 			err = bc.subscribeDataStream(messages, key)
 			// we got error mostly cause by connection reset, or binance kick us
-			bc.sugar.Errorw("subscribe data stream broken, retry after seconds")
-			updater.Stop()
-			time.Sleep(time.Second * 5)
+			if err != nil {
+				bc.sugar.Errorw("subscribe data stream broken, retry after seconds", "error", err)
+				updater.Stop()
+				time.Sleep(time.Second * 5)
+			}
 		}
 	}()
 }
