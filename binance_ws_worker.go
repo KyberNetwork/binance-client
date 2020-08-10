@@ -77,7 +77,6 @@ func (bc *AccountDataWorker) processMessages(messages chan []byte) {
 				return
 			}
 		case executionReport:
-			fmt.Println("executionReport", string(m))
 			o, err := parseAccountOrder(m)
 			if err != nil {
 				logger.Errorw("failed to parse order info", "err", err)
