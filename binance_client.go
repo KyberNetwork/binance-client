@@ -135,6 +135,7 @@ func (bc *Client) GetAccountState() (common.AccountState, error) {
 	req, err := http.NewRequest(http.MethodGet, requestURL, nil)
 	if err != nil {
 		logger.Errorw("failed to create new request for get account info", "error", err)
+		return common.AccountState{}, err
 	}
 
 	// sign the request
@@ -160,6 +161,7 @@ func (bc *Client) GetOpenOrders() ([]*common.OpenOrder, error) {
 	req, err := http.NewRequest(http.MethodGet, requestURL, nil)
 	if err != nil {
 		logger.Errorw("failed to create new request for get account info", "error", err)
+		return nil, err
 	}
 
 	// sign the request
