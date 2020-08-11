@@ -311,7 +311,7 @@ func (bc *AccountDataWorker) initWSSession() (string, error) {
 		bc.sugar.Errorw("failed to create listen key", "error", err)
 		return "", err
 	}
-	bc.sugar.Info("listen key ", listenKey)
+	bc.sugar.Info("fetched listenKey ...", listenKey[len(listenKey)-5:])
 	// init account info
 	accountState, err := bc.restClient.GetAccountState()
 	if err != nil {
