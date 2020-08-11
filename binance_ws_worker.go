@@ -3,7 +3,6 @@ package binance
 import (
 	"encoding/json"
 	"fmt"
-	"log"
 	"time"
 
 	"github.com/buger/jsonparser"
@@ -82,7 +81,7 @@ func (bc *AccountDataWorker) processMessages(messages chan []byte) {
 				logger.Errorw("failed to parse order info", "err", err)
 				return
 			}
-			logger.Infow("update order state", "order_id", o.ClientOrderID,
+			logger.Infow("update order state", "order_id", o.OrderID,
 				"state", o.CurrentOrderStatus, "symbol", o.Symbol)
 			if err = bc.accountInfoStore.UpdateOrder(o); err != nil {
 				logger.Errorw("failed to update order info", "err", err)
@@ -293,7 +292,6 @@ func (bc *AccountDataWorker) subscribeDataStream(messages chan<- []byte, listenK
 			logger.Errorw("read message error", "err", err)
 			return err
 		}
-		log.Printf("%s \n", m)
 		tm.Reset(time.Second)
 		select {
 		case messages <- m:
@@ -330,7 +328,7 @@ func (bc *AccountDataWorker) initWSSession() (string, error) {
 		OpenOrder: make(map[string]*common.OpenOrder),
 	}
 	for _, o := range orders {
-		info.OpenOrder[o.ClientOrderID] = o
+		info.OpenOrder[common.UniqOrder(o.Symbol, o.OrderID)] = o
 	}
 	bc.accountInfoStore.SetData(info)
 	return listenKey, nil
