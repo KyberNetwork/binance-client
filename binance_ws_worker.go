@@ -72,6 +72,9 @@ func (bc *AccountDataWorker) processMessages(messages chan []byte) {
 				logger.Errorw("failed to update order info", "err", err)
 				return
 			}
+			if err = bc.updateAccountStateFromRest(); err != nil {
+				logger.Errorw("failed to update account from rest")
+			}
 		}
 	}
 }
@@ -287,4 +290,13 @@ func (bc *AccountDataWorker) keepAliveKey(key string) *time.Ticker {
 		}
 	}()
 	return t
+}
+
+func (bc *AccountDataWorker) updateAccountStateFromRest() error {
+	accountState, err := bc.restClient.GetAccountState()
+	if err != nil {
+		bc.sugar.Errorw("failed to get account state from binance", "error", err)
+		return err
+	}
+	return bc.accountInfoStore.SetAccountState(&accountState)
 }
