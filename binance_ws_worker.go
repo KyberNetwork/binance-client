@@ -52,6 +52,8 @@ func (bc *AccountDataWorker) processMessages(messages chan []byte) {
 				logger.Errorw("failed to parse account info", "err", err)
 				return
 			}
+			accountStateBytes, _ := json.Marshal(ai)
+			logger.Infow("outbound account info", "state", fmt.Sprintf("%s", accountStateBytes))
 			if err := bc.accountInfoStore.SetAccountState(&ai); err != nil {
 				logger.Errorw("failed to update account info", "error", err)
 				return
@@ -61,6 +63,8 @@ func (bc *AccountDataWorker) processMessages(messages chan []byte) {
 			if bc.parseAccountBalance(m, logger, balance) {
 				return
 			}
+			balanceBytes, _ := json.Marshal(balance)
+			logger.Infow("outbound account position", "content", fmt.Sprintf("%s", balanceBytes))
 			if err := bc.accountInfoStore.UpdateBalance(balance); err != nil {
 				logger.Errorw("failed to update balance info", "error", err)
 				return
@@ -71,6 +75,8 @@ func (bc *AccountDataWorker) processMessages(messages chan []byte) {
 				logger.Errorw("failed to unmarshal balanceUpdate", "error", err)
 				return
 			}
+			balanceUpdateBytes, _ := json.Marshal(balanceUpdate)
+			logger.Infow("balance update", "content", fmt.Sprintf("%s", balanceUpdateBytes))
 			if err := bc.accountInfoStore.UpdateBalanceDelta(&balanceUpdate); err != nil {
 				logger.Errorw("failed to update account balance delta", "error", err)
 				return
@@ -83,6 +89,8 @@ func (bc *AccountDataWorker) processMessages(messages chan []byte) {
 			}
 			logger.Infow("update order state", "order_id", o.OrderID,
 				"state", o.CurrentOrderStatus, "symbol", o.Symbol)
+			oBytes, _ := json.Marshal(o)
+			logger.Infow("execution report", "content", fmt.Sprintf("%s", oBytes))
 			if err = bc.accountInfoStore.UpdateOrder(o); err != nil {
 				logger.Errorw("failed to update order info", "err", err)
 				return
