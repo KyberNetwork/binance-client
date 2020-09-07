@@ -14,18 +14,18 @@ import (
 )
 
 const (
-	outboundAccountInfo     = "outboundAccountInfo"
-	outboundAccountPosition = "outboundAccountPosition"
-	balanceUpdate           = "balanceUpdate"
-	executionReport         = "executionReport"
+	balanceUpdate   = "balanceUpdate"
+	executionReport = "executionReport"
 )
 
+// AccountDataWorker object
 type AccountDataWorker struct {
 	restClient       *Client
 	sugar            *zap.SugaredLogger
 	accountInfoStore *common.BinanceAccountInfoStore
 }
 
+// NewAccountDataWorker create new account worker instance
 func NewAccountDataWorker(sugar *zap.SugaredLogger, store *common.BinanceAccountInfoStore,
 	respClient *Client) *AccountDataWorker {
 	return &AccountDataWorker{
@@ -46,29 +46,6 @@ func (bc *AccountDataWorker) processMessages(messages chan []byte) {
 			return
 		}
 		switch eventType {
-		case outboundAccountInfo:
-			var ai common.AccountState
-			if err = bc.parseAccountState(m, &ai); err != nil {
-				logger.Errorw("failed to parse account info", "err", err)
-				return
-			}
-			accountStateBytes, _ := json.Marshal(ai)
-			logger.Infow("outbound account info", "state", fmt.Sprintf("%s", accountStateBytes))
-			if err := bc.accountInfoStore.SetAccountState(&ai); err != nil {
-				logger.Errorw("failed to update account info", "error", err)
-				return
-			}
-		case outboundAccountPosition:
-			var balance []*common.PayloadBalance
-			if bc.parseAccountBalance(m, logger, balance) {
-				return
-			}
-			balanceBytes, _ := json.Marshal(balance)
-			logger.Infow("outbound account position", "content", fmt.Sprintf("%s", balanceBytes))
-			if err := bc.accountInfoStore.UpdateBalance(balance); err != nil {
-				logger.Errorw("failed to update balance info", "error", err)
-				return
-			}
 		case balanceUpdate:
 			var balanceUpdate common.BalanceUpdate
 			if err := json.Unmarshal(m, &balanceUpdate); err != nil {
@@ -207,74 +184,6 @@ func parseAccountOrder(m []byte) (*common.ExecutionReport, error) {
 		return nil, err
 	}
 	return &e, nil
-}
-
-func (bc *AccountDataWorker) parseAccountBalance(m []byte, logger *zap.SugaredLogger, balance []*common.PayloadBalance) bool {
-	balanceByte, _, _, err := jsonparser.Get(m, "B")
-	if err != nil {
-		logger.Errorw("failed to lookup balance", "err", err)
-		return true
-	}
-	if err := json.Unmarshal(balanceByte, &balance); err != nil {
-		logger.Errorw("failed to parse balance data", "err", err)
-		return true
-	}
-	return false
-}
-
-func (bc *AccountDataWorker) parseAccountState(data []byte, accountInfo *common.AccountState) error {
-	var err error
-	accountInfo.MakerCommission, err = jsonparser.GetInt(data, "m")
-	if err != nil {
-		return err
-	}
-	accountInfo.TakerCommission, err = jsonparser.GetInt(data, "t")
-	if err != nil {
-		return err
-	}
-	accountInfo.BuyerCommission, err = jsonparser.GetInt(data, "b")
-	if err != nil {
-		return err
-	}
-	accountInfo.SellerCommission, err = jsonparser.GetInt(data, "s")
-	if err != nil {
-		return err
-	}
-	accountInfo.CanTrade, err = jsonparser.GetBoolean(data, "T")
-	if err != nil {
-		return err
-	}
-	accountInfo.CanWithdraw, err = jsonparser.GetBoolean(data, "W")
-	if err != nil {
-		return err
-	}
-	accountInfo.CanDeposit, err = jsonparser.GetBoolean(data, "D")
-	if err != nil {
-		return err
-	}
-	updateTime, err := jsonparser.GetInt(data, "u")
-	if err != nil {
-		return err
-	}
-	accountInfo.UpdateTime = uint64(updateTime)
-	accountInfo.AccountType = "SPOT"           // currently we only use this account type
-	accountInfo.Permissions = []string{"SPOT"} // this is default permisson
-	balanceByte, _, _, err := jsonparser.Get(data, "B")
-	if err != nil {
-		return err
-	}
-	var balance []common.PayloadBalance
-	if err := json.Unmarshal(balanceByte, &balance); err != nil {
-		return err
-	}
-	for _, tokenBalance := range balance {
-		accountInfo.Balances = append(accountInfo.Balances, common.Balance{
-			Asset:  tokenBalance.Asset,
-			Free:   tokenBalance.Free,
-			Locked: tokenBalance.Lock,
-		})
-	}
-	return nil
 }
 
 // subscribeDataStream subscribe to a data stream
