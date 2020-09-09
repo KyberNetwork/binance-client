@@ -32,6 +32,13 @@ type Client struct {
 	sugar      *zap.SugaredLogger
 }
 
+// FwdData contain data we forward to client
+type FwdData struct {
+	Status      int
+	ContentType string
+	Data        []byte
+}
+
 // NewBinanceClient create new client object
 func NewBinanceClient(key, secret string, sugar *zap.SugaredLogger) *Client {
 	return &Client{
@@ -61,39 +68,39 @@ func (bc *Client) CreateListenKey() (string, error) {
 	}
 	req.Header.Set("X-MBX-APIKEY", bc.apiKey)
 
-	err = bc.doRequest(req, logger, &listenKey)
+	_, err = bc.doRequest(req, logger, &listenKey)
 	if err != nil {
 		return "", err
 	}
 	return listenKey.ListenKey, nil
 }
 
-func (bc *Client) doRequest(req *http.Request, logger *zap.SugaredLogger, data interface{}) error {
+func (bc *Client) doRequest(req *http.Request, logger *zap.SugaredLogger, data interface{}) (*FwdData, error) {
 	resp, err := bc.httpClient.Do(req)
 	if err != nil {
 		logger.Errorw("failed to execute the request", "error", err)
-		return errors.Wrap(err, "failed to execute the request")
+		return nil, errors.Wrap(err, "failed to execute the request")
 	}
 	respBody, err := ioutil.ReadAll(resp.Body)
 	if err != nil {
 		logger.Errorw("failed to read response body", "error", err)
-		return err
+		return nil, err
 	}
 	_ = resp.Body.Close()
 	switch resp.StatusCode {
 	case http.StatusOK:
 		if data == nil { // if data == nil then caller does not care about response body, consider as success
-			return nil
+			return nil, nil
 		}
 		if err = json.Unmarshal(respBody, data); err != nil {
 			logger.Errorw("failed to parse data into struct", "error", err)
-			return errors.Wrap(err, "failed to parse data into struct")
+			return &FwdData{Data: respBody, Status: resp.StatusCode}, errors.Wrap(err, "failed to parse data into struct")
 		}
 	default:
 		logger.Errorw("got unexpected status code", "code", resp.StatusCode, "responseBody", string(respBody))
-		return fmt.Errorf("got unexpected status code %d, body=%s", resp.StatusCode, string(respBody))
+		return &FwdData{Status: resp.StatusCode, Data: respBody, ContentType: resp.Header.Get("Content-Type")}, fmt.Errorf("got unexpected status code %d, body=%s", resp.StatusCode, string(respBody))
 	}
-	return nil
+	return nil, nil
 }
 
 // KeepListenKeyAlive keep it alive
@@ -108,7 +115,8 @@ func (bc *Client) KeepListenKeyAlive(listenKey string) error {
 		return err
 	}
 	req.Header.Set("X-MBX-APIKEY", bc.apiKey)
-	return bc.doRequest(req, logger, nil)
+	_, err = bc.doRequest(req, logger, nil)
+	return err
 }
 
 // Sign the request
@@ -147,7 +155,7 @@ func (bc *Client) GetAccountState() (common.AccountState, error) {
 	sig.Set("signature", bc.Sign(q.Encode()))
 	req.URL.RawQuery = q.Encode() + "&" + sig.Encode()
 
-	err = bc.doRequest(req, logger, &response)
+	_, err = bc.doRequest(req, logger, &response)
 	return response, err
 }
 
@@ -173,16 +181,16 @@ func (bc *Client) GetOpenOrders() ([]*common.OpenOrder, error) {
 	sig.Set("signature", bc.Sign(q.Encode()))
 	req.URL.RawQuery = q.Encode() + "&" + sig.Encode()
 
-	err = bc.doRequest(req, logger, &response)
+	_, err = bc.doRequest(req, logger, &response)
 	return response, err
 }
-func (bc *Client) OrderStatus(symbol string, id int64) (*common.OpenOrder, error) {
+func (bc *Client) OrderStatus(symbol string, id int64) (*common.OpenOrder, *FwdData, error) {
 	result := common.OpenOrder{}
 	requestURL := fmt.Sprintf("%s/api/v3/order", apiBaseURL)
 	req, err := http.NewRequest(http.MethodGet, requestURL, nil)
 	if err != nil {
 		bc.sugar.Errorw("failed to create new request for get account info", "error", err)
-		return nil, err
+		return nil, nil, err
 	}
 
 	// sign the request
@@ -196,7 +204,7 @@ func (bc *Client) OrderStatus(symbol string, id int64) (*common.OpenOrder, error
 	sig.Set("signature", bc.Sign(q.Encode()))
 	req.URL.RawQuery = q.Encode() + "&" + sig.Encode()
 
-	err = bc.doRequest(req, bc.sugar, &result)
+	fwd, err := bc.doRequest(req, bc.sugar, &result)
 
-	return &result, err
+	return &result, fwd, err
 }
