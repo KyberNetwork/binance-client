@@ -11,6 +11,7 @@ import (
 
 	"github.com/KyberNetwork/cex_account_data/common"
 	"github.com/KyberNetwork/cex_account_data/lib/caller"
+	"github.com/KyberNetwork/cex_account_data/lib/ocache"
 )
 
 const (
@@ -23,15 +24,19 @@ type AccountDataWorker struct {
 	restClient       *Client
 	sugar            *zap.SugaredLogger
 	accountInfoStore *common.BinanceAccountInfoStore
+	completedOrder   *ocache.OCache
+	accountID        string
 }
 
 // NewAccountDataWorker create new account worker instance
-func NewAccountDataWorker(sugar *zap.SugaredLogger, store *common.BinanceAccountInfoStore,
-	respClient *Client) *AccountDataWorker {
+func NewAccountDataWorker(sugar *zap.SugaredLogger, store *common.BinanceAccountInfoStore, respClient *Client,
+	cache *ocache.OCache, id string) *AccountDataWorker {
 	return &AccountDataWorker{
 		restClient:       respClient,
 		sugar:            sugar,
 		accountInfoStore: store,
+		completedOrder:   cache,
+		accountID:        id,
 	}
 }
 
@@ -68,9 +73,13 @@ func (bc *AccountDataWorker) processMessages(messages chan []byte) {
 				"state", o.CurrentOrderStatus, "symbol", o.Symbol)
 			oBytes, _ := json.Marshal(o)
 			logger.Infow("execution report", "content", fmt.Sprintf("%s", oBytes))
-			if err = bc.accountInfoStore.UpdateOrder(o); err != nil {
+			order, del, err := bc.accountInfoStore.UpdateOrder(o)
+			if err != nil {
 				logger.Errorw("failed to update order info", "err", err)
 				return
+			}
+			if del {
+				bc.completedOrder.Set(common.MakeCompletedOrderID(bc.accountID, order.Symbol, order.OrderID), order)
 			}
 			if err = bc.updateAccountStateFromRest(); err != nil {
 				logger.Errorw("failed to update account from rest")
