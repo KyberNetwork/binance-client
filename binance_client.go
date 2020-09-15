@@ -1,17 +1,13 @@
 package binance
 
 import (
-	"crypto/hmac"
-	"crypto/sha256"
 	"encoding/json"
 	"fmt"
 	"io/ioutil"
 	"net/http"
-	"net/url"
 	"strconv"
 	"time"
 
-	ethereum "github.com/ethereum/go-ethereum/common"
 	"github.com/pkg/errors"
 	"go.uber.org/zap"
 
@@ -22,6 +18,7 @@ import (
 const (
 	defaultTimeout = 5 * time.Second
 	apiBaseURL     = "https://api.binance.com"
+	apiKeyHeader   = "X-MBX-APIKEY"
 )
 
 // Client to interact with binance api
@@ -61,14 +58,14 @@ func (bc *Client) CreateListenKey() (string, error) {
 		logger    = bc.sugar.With("func", caller.GetCurrentFunctionName())
 	)
 	requestURL := fmt.Sprintf("%s/api/v3/userDataStream", apiBaseURL)
-	req, err := http.NewRequest(http.MethodPost, requestURL, nil)
+	req, err := NewRequestBuilder(http.MethodPost, requestURL, nil)
 	if err != nil {
 		logger.Errorw("failed to create request to create listen key", "error", err)
 		return "", err
 	}
-	req.Header.Set("X-MBX-APIKEY", bc.apiKey)
 
-	_, err = bc.doRequest(req, logger, &listenKey)
+	rr := req.WithHeader(apiKeyHeader, bc.apiKey).Request()
+	_, err = bc.doRequest(rr, logger, &listenKey)
 	if err != nil {
 		return "", err
 	}
@@ -98,7 +95,8 @@ func (bc *Client) doRequest(req *http.Request, logger *zap.SugaredLogger, data i
 		}
 	default:
 		logger.Errorw("got unexpected status code", "code", resp.StatusCode, "responseBody", string(respBody))
-		return &FwdData{Status: resp.StatusCode, Data: respBody, ContentType: resp.Header.Get("Content-Type")}, fmt.Errorf("got unexpected status code %d, body=%s", resp.StatusCode, string(respBody))
+		return &FwdData{Status: resp.StatusCode, Data: respBody, ContentType: resp.Header.Get("Content-Type")},
+			fmt.Errorf("got unexpected status code %d, body=%s", resp.StatusCode, string(respBody))
 	}
 	return nil, nil
 }
@@ -108,29 +106,17 @@ func (bc *Client) KeepListenKeyAlive(listenKey string) error {
 	var (
 		logger = bc.sugar.With("func", caller.GetCurrentFunctionName())
 	)
-	requestURL := fmt.Sprintf("%s/api/v3/userDataStream?listenKey=%s", apiBaseURL, listenKey)
-	req, err := http.NewRequest(http.MethodPut, requestURL, nil)
+	requestURL := fmt.Sprintf("%s/api/v3/userDataStream", apiBaseURL)
+	req, err := NewRequestBuilder(http.MethodPut, requestURL, nil)
 	if err != nil {
 		logger.Errorw("failed to create new request for keep listen key alive", "error", err)
 		return err
 	}
-	req.Header.Set("X-MBX-APIKEY", bc.apiKey)
-	_, err = bc.doRequest(req, logger, nil)
+	rr := req.WithHeader(apiKeyHeader, bc.apiKey).
+		WithParam("listenKey", listenKey).
+		Request()
+	_, err = bc.doRequest(rr, logger, nil)
 	return err
-}
-
-// Sign the request
-func (bc *Client) Sign(msg string) string {
-	mac := hmac.New(sha256.New, []byte(bc.secretKey))
-	if _, err := mac.Write([]byte(msg)); err != nil {
-		panic(err) // should never happen
-	}
-	result := ethereum.Bytes2Hex(mac.Sum(nil))
-	return result
-}
-
-func getTimepoint() uint64 {
-	return uint64(time.Now().UnixNano()) / uint64(time.Millisecond)
 }
 
 // GetAccountState return account info
@@ -140,22 +126,13 @@ func (bc *Client) GetAccountState() (common.AccountState, error) {
 		response common.AccountState
 	)
 	requestURL := fmt.Sprintf("%s/api/v3/account", apiBaseURL)
-	req, err := http.NewRequest(http.MethodGet, requestURL, nil)
+	req, err := NewRequestBuilder(http.MethodGet, requestURL, nil)
 	if err != nil {
 		logger.Errorw("failed to create new request for get account info", "error", err)
 		return common.AccountState{}, err
 	}
-
-	// sign the request
-	req.Header.Set("X-MBX-APIKEY", bc.apiKey)
-	q := req.URL.Query()
-	sig := url.Values{}
-	q.Set("timestamp", fmt.Sprintf("%d", getTimepoint()))
-	q.Set("recvWindow", "5000")
-	sig.Set("signature", bc.Sign(q.Encode()))
-	req.URL.RawQuery = q.Encode() + "&" + sig.Encode()
-
-	_, err = bc.doRequest(req, logger, &response)
+	rr := req.WithHeader(apiKeyHeader, bc.apiKey).SignedRequest(bc.secretKey)
+	_, err = bc.doRequest(rr, logger, &response)
 	return response, err
 }
 
@@ -166,45 +143,28 @@ func (bc *Client) GetOpenOrders() ([]*common.OpenOrder, error) {
 		response = make([]*common.OpenOrder, 0)
 	)
 	requestURL := fmt.Sprintf("%s/api/v3/openOrders", apiBaseURL)
-	req, err := http.NewRequest(http.MethodGet, requestURL, nil)
+	req, err := NewRequestBuilder(http.MethodGet, requestURL, nil)
 	if err != nil {
 		logger.Errorw("failed to create new request for get account info", "error", err)
 		return nil, err
 	}
-
-	// sign the request
-	req.Header.Set("X-MBX-APIKEY", bc.apiKey)
-	q := req.URL.Query()
-	sig := url.Values{}
-	q.Set("timestamp", fmt.Sprintf("%d", getTimepoint()))
-	q.Set("recvWindow", "5000")
-	sig.Set("signature", bc.Sign(q.Encode()))
-	req.URL.RawQuery = q.Encode() + "&" + sig.Encode()
-
-	_, err = bc.doRequest(req, logger, &response)
+	rr := req.WithHeader(apiKeyHeader, bc.apiKey).SignedRequest(bc.secretKey)
+	_, err = bc.doRequest(rr, logger, &response)
 	return response, err
 }
 func (bc *Client) OrderStatus(symbol string, id int64) (*common.OpenOrder, *FwdData, error) {
 	result := common.OpenOrder{}
 	requestURL := fmt.Sprintf("%s/api/v3/order", apiBaseURL)
-	req, err := http.NewRequest(http.MethodGet, requestURL, nil)
+	req, err := NewRequestBuilder(http.MethodGet, requestURL, nil)
 	if err != nil {
 		bc.sugar.Errorw("failed to create new request for get account info", "error", err)
 		return nil, nil, err
 	}
-
-	// sign the request
-	req.Header.Set("X-MBX-APIKEY", bc.apiKey)
-	q := req.URL.Query()
-	sig := url.Values{}
-	q.Set("symbol", symbol)
-	q.Set("orderId", strconv.Itoa(int(id)))
-	q.Set("timestamp", fmt.Sprintf("%d", getTimepoint()))
-	q.Set("recvWindow", "5000")
-	sig.Set("signature", bc.Sign(q.Encode()))
-	req.URL.RawQuery = q.Encode() + "&" + sig.Encode()
-
-	fwd, err := bc.doRequest(req, bc.sugar, &result)
+	rr := req.WithHeader(apiKeyHeader, bc.apiKey).
+		WithParam("symbol", symbol).
+		WithParam("orderId", strconv.FormatInt(id, 10)).
+		SignedRequest(bc.secretKey)
+	fwd, err := bc.doRequest(rr, bc.sugar, &result)
 
 	return &result, fwd, err
 }
