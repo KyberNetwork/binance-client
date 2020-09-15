@@ -84,21 +84,25 @@ func (bc *Client) doRequest(req *http.Request, logger *zap.SugaredLogger, data i
 		return nil, err
 	}
 	_ = resp.Body.Close()
+	fwd := &FwdData{
+		Status:      resp.StatusCode,
+		ContentType: resp.Header.Get("Content-Type"),
+		Data:        respBody,
+	}
 	switch resp.StatusCode {
 	case http.StatusOK:
 		if data == nil { // if data == nil then caller does not care about response body, consider as success
-			return nil, nil
+			return fwd, nil
 		}
 		if err = json.Unmarshal(respBody, data); err != nil {
 			logger.Errorw("failed to parse data into struct", "error", err)
-			return &FwdData{Data: respBody, Status: resp.StatusCode}, errors.Wrap(err, "failed to parse data into struct")
+			return fwd, errors.Wrap(err, "failed to parse data into struct")
 		}
 	default:
 		logger.Errorw("got unexpected status code", "code", resp.StatusCode, "responseBody", string(respBody))
-		return &FwdData{Status: resp.StatusCode, Data: respBody, ContentType: resp.Header.Get("Content-Type")},
-			fmt.Errorf("got unexpected status code %d, body=%s", resp.StatusCode, string(respBody))
+		return fwd, fmt.Errorf("got unexpected status code %d, body=%s", resp.StatusCode, string(respBody))
 	}
-	return nil, nil
+	return fwd, nil
 }
 
 // KeepListenKeyAlive keep it alive
