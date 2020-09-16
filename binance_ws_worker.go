@@ -213,6 +213,18 @@ func (bc *AccountDataWorker) subscribeDataStream(messages chan<- []byte, listenK
 	defer func() {
 		_ = wsConn.Close()
 	}()
+	go func() {
+		tick := time.NewTicker(time.Second * 30)
+		defer tick.Stop()
+		for range tick.C {
+			logger.Infow("sending pong..")
+			err := wsConn.WriteControl(ws.PongMessage, []byte("pong"), time.Now().Add(time.Second*2))
+			if err != nil {
+				logger.Errorw("websocket connection error detected", "err", err)
+				break
+			}
+		}
+	}()
 	tm := time.NewTimer(time.Second)
 	tm.Stop()
 	for {
