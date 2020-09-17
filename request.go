@@ -48,6 +48,7 @@ func (r *RequestBuilder) SignedRequest(secret string) *http.Request {
 }
 
 func (r *RequestBuilder) Request() *http.Request {
+	r.req.URL.RawQuery = r.params.Encode()
 	return r.req
 }
 
