@@ -213,10 +213,18 @@ func (bc *AccountDataWorker) subscribeDataStream(messages chan<- []byte, listenK
 	defer func() {
 		_ = wsConn.Close()
 	}()
+	logger.Infow("ws connection started", "remote", wsConn.RemoteAddr().String())
 	go func() {
+		startTime := time.Now()
 		tick := time.NewTicker(time.Second * 30)
 		defer tick.Stop()
 		for range tick.C {
+			if time.Since(startTime) > time.Hour*23+time.Minute*30 {
+				logger.Infow("connection end of life, reset now")
+				_ = wsConn.Close() // binance should send close message right after 24h, but for sure, we check again at 24h2min
+				// should not reach here
+				break
+			}
 			logger.Infow("sending pong..")
 			err := wsConn.WriteControl(ws.PongMessage, []byte("pong"), time.Now().Add(time.Second*2))
 			if err != nil {
