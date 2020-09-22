@@ -3,6 +3,7 @@ package binance
 import (
 	"encoding/json"
 	"fmt"
+	"log"
 	"time"
 
 	"github.com/buger/jsonparser"
@@ -54,10 +55,14 @@ func (bc *AccountDataWorker) processMessages(messages chan []byte) {
 		switch eventType {
 		case outboundAccountPosition:
 			var balance []*common.PayloadBalance
-			if bc.parseAccountBalance(m, logger, balance) {
+			logger.Infow("message", "content", fmt.Sprintf("%s", m))
+			if err := bc.parseAccountBalance(m, logger, &balance); err != nil {
 				return
 			}
-			balanceBytes, _ := json.Marshal(balance)
+			balanceBytes, err := json.Marshal(balance)
+			if err != nil {
+				log.Panic(err)
+			}
 			logger.Infow("outbound account position", "content", fmt.Sprintf("%s", balanceBytes))
 			if err := bc.accountInfoStore.UpdateBalance(balance); err != nil {
 				logger.Errorw("failed to update balance info", "error", err)
@@ -207,17 +212,19 @@ func parseAccountOrder(m []byte) (*common.ExecutionReport, error) {
 	return &e, nil
 }
 
-func (bc *AccountDataWorker) parseAccountBalance(m []byte, logger *zap.SugaredLogger, balance []*common.PayloadBalance) bool {
+func (bc *AccountDataWorker) parseAccountBalance(m []byte, logger *zap.SugaredLogger, balance interface{}) error {
 	balanceByte, _, _, err := jsonparser.Get(m, "B")
 	if err != nil {
 		logger.Errorw("failed to lookup balance", "err", err)
-		return true
+		return fmt.Errorf("failed to lookup balance: %s", err)
 	}
+	log.Printf("%s", balanceByte)
 	if err := json.Unmarshal(balanceByte, &balance); err != nil {
 		logger.Errorw("failed to parse balance data", "err", err)
-		return true
+		return fmt.Errorf("failed to parse balance data: %s", err)
 	}
-	return false
+	log.Printf("%+v", balance)
+	return nil
 }
 
 // subscribeDataStream subscribe to a data stream
