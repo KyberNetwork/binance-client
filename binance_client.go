@@ -46,7 +46,7 @@ func NewBinanceClient(key, secret string, sugar *zap.SugaredLogger) *Client {
 	}
 }
 
-//ListenKey is listen for user data stream
+// ListenKey is listen for user data stream
 type ListenKey struct {
 	ListenKey string `json:"listenKey"`
 }

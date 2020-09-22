@@ -15,8 +15,9 @@ import (
 )
 
 const (
-	balanceUpdate   = "balanceUpdate"
-	executionReport = "executionReport"
+	outboundAccountPosition = "outboundAccountPosition"
+	balanceUpdate           = "balanceUpdate"
+	executionReport         = "executionReport"
 )
 
 // AccountDataWorker object
@@ -51,6 +52,17 @@ func (bc *AccountDataWorker) processMessages(messages chan []byte) {
 			return
 		}
 		switch eventType {
+		case outboundAccountPosition:
+			var balance []*common.PayloadBalance
+			if bc.parseAccountBalance(m, logger, balance) {
+				return
+			}
+			balanceBytes, _ := json.Marshal(balance)
+			logger.Infow("outbound account position", "content", fmt.Sprintf("%s", balanceBytes))
+			if err := bc.accountInfoStore.UpdateBalance(balance); err != nil {
+				logger.Errorw("failed to update balance info", "error", err)
+				return
+			}
 		case balanceUpdate:
 			var balanceUpdate common.BalanceUpdate
 			if err := json.Unmarshal(m, &balanceUpdate); err != nil {
@@ -80,9 +92,6 @@ func (bc *AccountDataWorker) processMessages(messages chan []byte) {
 			}
 			if del {
 				bc.completedOrder.Set(common.MakeCompletedOrderID(bc.accountID, order.Symbol, order.OrderID), order)
-			}
-			if err = bc.updateAccountStateFromRest(); err != nil {
-				logger.Errorw("failed to update account from rest")
 			}
 		}
 	}
@@ -196,6 +205,19 @@ func parseAccountOrder(m []byte) (*common.ExecutionReport, error) {
 		return nil, err
 	}
 	return &e, nil
+}
+
+func (bc *AccountDataWorker) parseAccountBalance(m []byte, logger *zap.SugaredLogger, balance []*common.PayloadBalance) bool {
+	balanceByte, _, _, err := jsonparser.Get(m, "B")
+	if err != nil {
+		logger.Errorw("failed to lookup balance", "err", err)
+		return true
+	}
+	if err := json.Unmarshal(balanceByte, &balance); err != nil {
+		logger.Errorw("failed to parse balance data", "err", err)
+		return true
+	}
+	return false
 }
 
 // subscribeDataStream subscribe to a data stream
@@ -319,13 +341,4 @@ func (bc *AccountDataWorker) keepAliveKey(key string) *time.Ticker {
 		}
 	}()
 	return t
-}
-
-func (bc *AccountDataWorker) updateAccountStateFromRest() error {
-	accountState, err := bc.restClient.GetAccountState()
-	if err != nil {
-		bc.sugar.Errorw("failed to get account state from binance", "error", err)
-		return err
-	}
-	return bc.accountInfoStore.SetAccountState(&accountState)
 }
