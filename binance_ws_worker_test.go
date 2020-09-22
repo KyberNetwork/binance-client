@@ -4,6 +4,7 @@ import (
 	"testing"
 
 	"github.com/KyberNetwork/cex_account_data/common"
+	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"go.uber.org/zap"
 )
@@ -15,4 +16,7 @@ func TestParseAccountBalance(t *testing.T) {
 	balance := []*common.PayloadBalance{}
 	err := accountDataWorker.parseAccountBalance(data, sugar, &balance)
 	require.NoError(t, err)
+	assert.Equal(t, balance[0].Asset, "BNB")
+	assert.Equal(t, balance[0].Free, "1.60268308")
+	assert.Equal(t, balance[0].Lock, "0.00000000")
 }

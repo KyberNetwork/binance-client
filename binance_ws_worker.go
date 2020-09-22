@@ -3,7 +3,6 @@ package binance
 import (
 	"encoding/json"
 	"fmt"
-	"log"
 	"time"
 
 	"github.com/buger/jsonparser"
@@ -55,13 +54,12 @@ func (bc *AccountDataWorker) processMessages(messages chan []byte) {
 		switch eventType {
 		case outboundAccountPosition:
 			var balance []*common.PayloadBalance
-			logger.Infow("message", "content", fmt.Sprintf("%s", m))
 			if err := bc.parseAccountBalance(m, logger, &balance); err != nil {
 				return
 			}
 			balanceBytes, err := json.Marshal(balance)
 			if err != nil {
-				log.Panic(err)
+				return
 			}
 			logger.Infow("outbound account position", "content", fmt.Sprintf("%s", balanceBytes))
 			if err := bc.accountInfoStore.UpdateBalance(balance); err != nil {
@@ -218,12 +216,10 @@ func (bc *AccountDataWorker) parseAccountBalance(m []byte, logger *zap.SugaredLo
 		logger.Errorw("failed to lookup balance", "err", err)
 		return fmt.Errorf("failed to lookup balance: %s", err)
 	}
-	log.Printf("%s", balanceByte)
 	if err := json.Unmarshal(balanceByte, &balance); err != nil {
 		logger.Errorw("failed to parse balance data", "err", err)
 		return fmt.Errorf("failed to parse balance data: %s", err)
 	}
-	log.Printf("%+v", balance)
 	return nil
 }
 
