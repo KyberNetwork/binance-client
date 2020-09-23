@@ -24,13 +24,13 @@ const (
 type AccountDataWorker struct {
 	restClient       *Client
 	sugar            *zap.SugaredLogger
-	accountInfoStore *common.BinanceAccountInfoStore
+	accountInfoStore *BAccountInfoStore
 	completedOrder   *ocache.OCache
 	accountID        string
 }
 
 // NewAccountDataWorker create new account worker instance
-func NewAccountDataWorker(sugar *zap.SugaredLogger, store *common.BinanceAccountInfoStore, respClient *Client,
+func NewAccountDataWorker(sugar *zap.SugaredLogger, store *BAccountInfoStore, respClient *Client,
 	cache *ocache.OCache, id string) *AccountDataWorker {
 	return &AccountDataWorker{
 		restClient:       respClient,
@@ -53,7 +53,7 @@ func (bc *AccountDataWorker) processMessages(messages chan []byte) {
 		}
 		switch eventType {
 		case outboundAccountPosition:
-			var balance []*common.PayloadBalance
+			var balance []*PayloadBalance
 			if err := bc.parseAccountBalance(m, logger, &balance); err != nil {
 				return
 			}
@@ -67,7 +67,7 @@ func (bc *AccountDataWorker) processMessages(messages chan []byte) {
 				return
 			}
 		case balanceUpdate:
-			var balanceUpdate common.BalanceUpdate
+			var balanceUpdate BalanceUpdate
 			if err := json.Unmarshal(m, &balanceUpdate); err != nil {
 				logger.Errorw("failed to unmarshal balanceUpdate", "error", err)
 				return
@@ -100,8 +100,8 @@ func (bc *AccountDataWorker) processMessages(messages chan []byte) {
 	}
 }
 
-func parseAccountOrder(m []byte) (*common.ExecutionReport, error) {
-	e := common.ExecutionReport{}
+func parseAccountOrder(m []byte) (*ExecutionReport, error) {
+	e := ExecutionReport{}
 	var err error
 	e.EventTime, err = jsonparser.GetInt(m, "E")
 	if err != nil {
@@ -297,12 +297,12 @@ func (bc *AccountDataWorker) initWSSession() (string, error) {
 		bc.sugar.Errorw("failed to read open orders", "err", err)
 		return "", err
 	}
-	info := &common.BinanceAccountInfo{
+	info := &BAccountInfo{
 		State:     &accountState,
-		OpenOrder: make(map[string]*common.OpenOrder),
+		OpenOrder: make(map[string]*OpenOrder),
 	}
 	for _, o := range orders {
-		info.OpenOrder[common.UniqOrder(o.Symbol, o.OrderID)] = o
+		info.OpenOrder[UniqOrder(o.Symbol, o.OrderID)] = o
 	}
 	bc.accountInfoStore.SetData(info)
 	return listenKey, nil

@@ -12,7 +12,6 @@ import (
 	"github.com/pkg/errors"
 	"go.uber.org/zap"
 
-	"github.com/KyberNetwork/cex_account_data/common"
 	"github.com/KyberNetwork/cex_account_data/lib/caller"
 )
 
@@ -124,16 +123,16 @@ func (bc *Client) KeepListenKeyAlive(listenKey string) error {
 }
 
 // GetAccountState return account info
-func (bc *Client) GetAccountState() (common.AccountState, error) {
+func (bc *Client) GetAccountState() (AccountState, error) {
 	var (
 		logger   = bc.sugar.With("func", caller.GetCurrentFunctionName())
-		response common.AccountState
+		response AccountState
 	)
 	requestURL := fmt.Sprintf("%s/api/v3/account", apiBaseURL)
 	req, err := NewRequestBuilder(http.MethodGet, requestURL, nil)
 	if err != nil {
 		logger.Errorw("failed to create new request for get account info", "error", err)
-		return common.AccountState{}, err
+		return AccountState{}, err
 	}
 	rr := req.WithHeader(apiKeyHeader, bc.apiKey).SignedRequest(bc.secretKey)
 	_, err = bc.doRequest(rr, logger, &response)
@@ -141,10 +140,10 @@ func (bc *Client) GetAccountState() (common.AccountState, error) {
 }
 
 // GetOpenOrders return account info, if symbol is empty, all open order will return
-func (bc *Client) GetOpenOrders(symbol string) ([]*common.OpenOrder, *FwdData, error) {
+func (bc *Client) GetOpenOrders(symbol string) ([]*OpenOrder, *FwdData, error) {
 	var (
 		logger   = bc.sugar.With("func", caller.GetCurrentFunctionName())
-		response = make([]*common.OpenOrder, 0)
+		response = make([]*OpenOrder, 0)
 	)
 	requestURL := fmt.Sprintf("%s/api/v3/openOrders", apiBaseURL)
 	req, err := NewRequestBuilder(http.MethodGet, requestURL, nil)
@@ -160,8 +159,8 @@ func (bc *Client) GetOpenOrders(symbol string) ([]*common.OpenOrder, *FwdData, e
 	fwd, err := bc.doRequest(rq, logger, &response)
 	return response, fwd, err
 }
-func (bc *Client) OrderStatus(symbol string, id int64) (*common.OpenOrder, *FwdData, error) {
-	result := common.OpenOrder{}
+func (bc *Client) OrderStatus(symbol string, id int64) (*OpenOrder, *FwdData, error) {
+	result := OpenOrder{}
 	requestURL := fmt.Sprintf("%s/api/v3/order", apiBaseURL)
 	req, err := NewRequestBuilder(http.MethodGet, requestURL, nil)
 	if err != nil {
@@ -177,8 +176,8 @@ func (bc *Client) OrderStatus(symbol string, id int64) (*common.OpenOrder, *FwdD
 }
 
 // GetTradeHistory query recent trade list
-func (bc *Client) GetTradeHistory(symbol string, limit int64) (common.BinanceTradeHistory, *FwdData, error) {
-	result := common.BinanceTradeHistory{}
+func (bc *Client) GetTradeHistory(symbol string, limit int64) (TradeHistoryList, *FwdData, error) {
+	result := TradeHistoryList{}
 	requestURL := fmt.Sprintf("%s/api/v3/trades", apiBaseURL)
 	req, err := NewRequestBuilder(http.MethodGet, requestURL, nil)
 	if err != nil {
@@ -194,8 +193,8 @@ func (bc *Client) GetTradeHistory(symbol string, limit int64) (common.BinanceTra
 }
 
 // GetAccountTradeHistory query account recent trade list
-func (bc *Client) GetAccountTradeHistory(base, quote string, limit int64, fromID string) (common.BinanceAccountTradeHistory, *FwdData, error) {
-	result := common.BinanceAccountTradeHistory{}
+func (bc *Client) GetAccountTradeHistory(base, quote string, limit int64, fromID string) (AccountTradeHistoryList, *FwdData, error) {
+	result := AccountTradeHistoryList{}
 	symbol := strings.ToUpper(fmt.Sprintf("%s%s", base, quote))
 	requestURL := fmt.Sprintf("%s/api/v3/myTrades", apiBaseURL)
 	req, err := NewRequestBuilder(http.MethodGet, requestURL, nil)
@@ -217,13 +216,13 @@ func (bc *Client) GetAccountTradeHistory(base, quote string, limit int64, fromID
 }
 
 // WithdrawHistory query recent withdraw list
-func (bc *Client) WithdrawHistory(fromMillis, toMillis int64) (common.BinanceWithdrawals, *FwdData, error) {
-	result := common.BinanceWithdrawals{}
+func (bc *Client) WithdrawHistory(fromMillis, toMillis int64) (WithdrawalsList, *FwdData, error) {
+	result := WithdrawalsList{}
 	requestURL := fmt.Sprintf("%s/wapi/v3/withdrawHistory.html", apiBaseURL)
 	req, err := NewRequestBuilder(http.MethodGet, requestURL, nil)
 	if err != nil {
 		bc.sugar.Errorw("failed to create new request for get withdraw history", "error", err)
-		return common.BinanceWithdrawals{}, nil, err
+		return WithdrawalsList{}, nil, err
 	}
 	rr := req.WithHeader(apiKeyHeader, bc.apiKey).
 		WithParam("startTime", strconv.FormatInt(fromMillis, 10)).
@@ -240,13 +239,13 @@ func (bc *Client) WithdrawHistory(fromMillis, toMillis int64) (common.BinanceWit
 }
 
 // DepositHistory query recent withdraw list
-func (bc *Client) DepositHistory(fromMillis, toMillis int64) (common.BinanceDeposits, *FwdData, error) {
-	result := common.BinanceDeposits{}
+func (bc *Client) DepositHistory(fromMillis, toMillis int64) (DepositsList, *FwdData, error) {
+	result := DepositsList{}
 	requestURL := fmt.Sprintf("%s/wapi/v3/depositHistory.html", apiBaseURL)
 	req, err := NewRequestBuilder(http.MethodGet, requestURL, nil)
 	if err != nil {
 		bc.sugar.Errorw("failed to create new request for get deposit history", "error", err)
-		return common.BinanceDeposits{}, nil, err
+		return DepositsList{}, nil, err
 	}
 	rr := req.WithHeader(apiKeyHeader, bc.apiKey).
 		WithParam("startTime", strconv.FormatInt(fromMillis, 10)).
@@ -263,8 +262,8 @@ func (bc *Client) DepositHistory(fromMillis, toMillis int64) (common.BinanceDepo
 }
 
 // CancelOrder cancel an order
-func (bc *Client) CancelOrder(symbol string, id int64) (common.BinanceCancel, *FwdData, error) {
-	result := common.BinanceCancel{}
+func (bc *Client) CancelOrder(symbol string, id int64) (CancelResult, *FwdData, error) {
+	result := CancelResult{}
 	requestURL := fmt.Sprintf("%s/api/v3/order", apiBaseURL)
 	req, err := NewRequestBuilder(http.MethodDelete, requestURL, nil)
 	if err != nil {
@@ -280,8 +279,8 @@ func (bc *Client) CancelOrder(symbol string, id int64) (common.BinanceCancel, *F
 }
 
 // CancelAllOrder cancel all orders
-func (bc *Client) CancelAllOrder(symbol string) ([]common.BinanceOrder, *FwdData, error) {
-	var result []common.BinanceOrder
+func (bc *Client) CancelAllOrder(symbol string) ([]BOrder, *FwdData, error) {
+	var result []BOrder
 	requestURL := fmt.Sprintf("%s/api/v3/openOrders", apiBaseURL)
 	req, err := NewRequestBuilder(http.MethodDelete, requestURL, nil)
 	if err != nil {
@@ -297,7 +296,7 @@ func (bc *Client) CancelAllOrder(symbol string) ([]common.BinanceOrder, *FwdData
 
 // Withdraw ...
 func (bc *Client) Withdraw(symbol string, amount string, address string) (string, *FwdData, error) {
-	var result common.BinanceWithdrawResult
+	var result WithdrawResult
 	requestURL := fmt.Sprintf("%s/wapi/v3/withdraw.html", apiBaseURL)
 	req, err := NewRequestBuilder(http.MethodPost, requestURL, nil)
 	if err != nil {
@@ -321,8 +320,8 @@ func (bc *Client) Withdraw(symbol string, amount string, address string) (string
 }
 
 // GetDepositAddress ...
-func (bc *Client) GetDepositAddress(asset string) (common.BinanceDepositAddress, *FwdData, error) {
-	var result common.BinanceDepositAddress
+func (bc *Client) GetDepositAddress(asset string) (BDepositAddress, *FwdData, error) {
+	var result BDepositAddress
 	requestURL := fmt.Sprintf("%s/wapi/v3/depositAddress.html", apiBaseURL)
 	req, err := NewRequestBuilder(http.MethodGet, requestURL, nil)
 	if err != nil {
@@ -343,8 +342,8 @@ func (bc *Client) GetDepositAddress(asset string) (common.BinanceDepositAddress,
 }
 
 // GetAllAssetDetail ...
-func (bc *Client) GetAllAssetDetail(asset string) (common.BinanceAssetDetailResult, *FwdData, error) {
-	var result common.BinanceAssetDetailResult
+func (bc *Client) GetAllAssetDetail(asset string) (AssetDetailResult, *FwdData, error) {
+	var result AssetDetailResult
 	requestURL := fmt.Sprintf("%s/wapi/v3/assetDetail.html", apiBaseURL)
 	req, err := NewRequestBuilder(http.MethodGet, requestURL, nil)
 	if err != nil {
@@ -364,8 +363,8 @@ func (bc *Client) GetAllAssetDetail(asset string) (common.BinanceAssetDetailResu
 }
 
 // GetExchangeInfo ...
-func (bc *Client) GetExchangeInfo() (common.BinanceExchangeInfo, *FwdData, error) {
-	var result common.BinanceExchangeInfo
+func (bc *Client) GetExchangeInfo() (ExchangeInfo, *FwdData, error) {
+	var result ExchangeInfo
 	requestURL := fmt.Sprintf("%s/api/v3/exchangeInfo", apiBaseURL)
 	req, err := NewRequestBuilder(http.MethodGet, requestURL, nil)
 	if err != nil {
@@ -378,9 +377,9 @@ func (bc *Client) GetExchangeInfo() (common.BinanceExchangeInfo, *FwdData, error
 	return result, fwd, err
 }
 
-// getServerTime ...
-func (bc *Client) getServerTime() (int64, *FwdData, error) {
-	var result common.ServerTime
+// GetServerTime ...
+func (bc *Client) GetServerTime() (int64, *FwdData, error) {
+	var result ServerTime
 	requestURL := fmt.Sprintf("%s/api/v3/time", apiBaseURL)
 	req, err := NewRequestBuilder(http.MethodGet, requestURL, nil)
 	if err != nil {
