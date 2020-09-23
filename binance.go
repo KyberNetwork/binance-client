@@ -446,3 +446,11 @@ type ServerTime struct {
 	StatusImpl
 	ServerTime int64 `json:"serverTime"`
 }
+
+// CreateOrderResult ...
+type CreateOrderResult struct {
+	Symbol        string `json:"symbol"`
+	OrderID       uint64 `json:"orderId"`
+	ClientOrderID string `json:"clientOrderId"`
+	TransactTime  uint64 `json:"transactTime"`
+}

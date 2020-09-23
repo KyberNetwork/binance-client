@@ -123,6 +123,28 @@ func (bc *Client) GetAccountState() (AccountState, error) {
 	return response, err
 }
 
+// CreateOrder create a limit order
+func (bc *Client) CreateOrder(buyOrSell, symbol, rate, amount string) (CreateOrderResult, *FwdData, error) {
+	var (
+		response CreateOrderResult
+	)
+	requestURL := fmt.Sprintf("%s/api/v3/order", apiBaseURL)
+	req, err := NewRequestBuilder(http.MethodPost, requestURL, nil)
+	if err != nil {
+		return response, nil, err
+	}
+	rr := req.WithHeader(apiKeyHeader, bc.apiKey).
+		WithParam("symbol", symbol).
+		WithParam("side", buyOrSell).
+		WithParam("type", "LIMIT").
+		WithParam("timeInForce", "GTC").
+		WithParam("quantity", amount).
+		WithParam("price", rate).
+		SignedRequest(bc.secretKey)
+	fwd, err := bc.doRequest(rr, &response)
+	return response, fwd, err
+}
+
 // GetOpenOrders return account info, if symbol is empty, all open order will return
 func (bc *Client) GetOpenOrders(symbol string) ([]*OpenOrder, *FwdData, error) {
 	var (
