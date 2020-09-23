@@ -10,6 +10,7 @@ import (
 	"time"
 
 	ethereum "github.com/ethereum/go-ethereum/common"
+	"github.com/pkg/errors"
 )
 
 type RequestBuilder struct {
@@ -20,7 +21,7 @@ type RequestBuilder struct {
 func NewRequestBuilder(method, url string, body io.ReadCloser) (*RequestBuilder, error) {
 	req, err := http.NewRequest(method, url, body)
 	if err != nil {
-		return nil, err
+		return nil, errors.Wrap(err, "failed to create request")
 	}
 	return &RequestBuilder{
 		req:    req,
