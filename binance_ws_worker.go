@@ -292,7 +292,7 @@ func (bc *AccountDataWorker) initWSSession() (string, error) {
 		bc.sugar.Errorw("failed to init account info", "error", err)
 		return "", err
 	}
-	orders, err := bc.restClient.GetOpenOrders()
+	orders, _, err := bc.restClient.GetOpenOrders("")
 	if err != nil {
 		bc.sugar.Errorw("failed to read open orders", "err", err)
 		return "", err
