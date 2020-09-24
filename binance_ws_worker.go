@@ -11,7 +11,6 @@ import (
 	"go.uber.org/zap"
 
 	"github.com/KyberNetwork/cex_account_data/common"
-	"github.com/KyberNetwork/cex_account_data/lib/caller"
 )
 
 const (
@@ -36,7 +35,7 @@ func NewAccountDataWorker(sugar *zap.SugaredLogger, binanceContext *BContext) *A
 
 func (bc *AccountDataWorker) processMessages(messages chan []byte) {
 	var (
-		logger = bc.sugar.With("func", caller.GetCurrentFunctionName())
+		logger = bc.sugar
 	)
 	for m := range messages {
 		eventType, err := jsonparser.GetString(m, "e")
@@ -223,7 +222,7 @@ func (bc *AccountDataWorker) parseAccountBalance(m []byte, logger *zap.SugaredLo
 // subscribeDataStream subscribe to a data stream
 func (bc *AccountDataWorker) subscribeDataStream(messages chan<- []byte, listenKey string) error {
 	var (
-		logger   = bc.sugar.With("func", caller.GetCurrentFunctionName())
+		logger   = bc.sugar
 		wsDialer ws.Dialer
 		quit     int64 = 0
 	)
