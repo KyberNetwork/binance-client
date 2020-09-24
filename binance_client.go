@@ -124,7 +124,7 @@ func (bc *Client) GetAccountState() (AccountState, error) {
 }
 
 // CreateOrder create a limit order
-func (bc *Client) CreateOrder(buyOrSell, symbol, rate, amount string) (CreateOrderResult, *FwdData, error) {
+func (bc *Client) CreateOrder(side, symbol, ordType, timeInForce, price, amount string) (CreateOrderResult, *FwdData, error) {
 	var (
 		response CreateOrderResult
 	)
@@ -135,11 +135,11 @@ func (bc *Client) CreateOrder(buyOrSell, symbol, rate, amount string) (CreateOrd
 	}
 	rr := req.WithHeader(apiKeyHeader, bc.apiKey).
 		WithParam("symbol", symbol).
-		WithParam("side", buyOrSell).
-		WithParam("type", "LIMIT").
-		WithParam("timeInForce", "GTC").
+		WithParam("side", side).
+		WithParam("type", ordType).
+		WithParam("timeInForce", timeInForce).
 		WithParam("quantity", amount).
-		WithParam("price", rate).
+		WithParam("price", price).
 		SignedRequest(bc.secretKey)
 	fwd, err := bc.doRequest(rr, &response)
 	return response, fwd, err

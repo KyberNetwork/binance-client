@@ -449,8 +449,17 @@ type ServerTime struct {
 
 // CreateOrderResult ...
 type CreateOrderResult struct {
-	Symbol        string `json:"symbol"`
-	OrderID       uint64 `json:"orderId"`
-	ClientOrderID string `json:"clientOrderId"`
-	TransactTime  uint64 `json:"transactTime"`
+	Symbol              string `json:"symbol"`
+	OrderID             int64  `json:"orderId"`
+	OrderListID         int64  `json:"orderListId"`
+	ClientOrderID       string `json:"clientOrderId"`
+	TransactTime        uint64 `json:"transactTime"`
+	Price               string `json:"price"`
+	OrigQty             string `json:"origQty"`
+	ExecutedQty         string `json:"executedQty"`
+	CummulativeQuoteQty string `json:"cummulativeQuoteQty"`
+	Status              string `json:"status"`
+	TimeInForce         string `json:"timeInForce"`
+	Type                string `json:"type"`
+	Side                string `json:"side"`
 }

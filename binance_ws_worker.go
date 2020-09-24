@@ -3,6 +3,7 @@ package binance
 import (
 	"encoding/json"
 	"fmt"
+	"sync/atomic"
 	"time"
 
 	"github.com/buger/jsonparser"
@@ -11,7 +12,6 @@ import (
 
 	"github.com/KyberNetwork/cex_account_data/common"
 	"github.com/KyberNetwork/cex_account_data/lib/caller"
-	"github.com/KyberNetwork/cex_account_data/lib/ocache"
 )
 
 const (
@@ -22,22 +22,15 @@ const (
 
 // AccountDataWorker object
 type AccountDataWorker struct {
-	restClient       *Client
-	sugar            *zap.SugaredLogger
-	accountInfoStore *BAccountInfoStore
-	completedOrder   *ocache.OCache
-	accountID        string
+	sugar          *zap.SugaredLogger
+	binanceContext *BContext
 }
 
 // NewAccountDataWorker create new account worker instance
-func NewAccountDataWorker(sugar *zap.SugaredLogger, store *BAccountInfoStore, respClient *Client,
-	cache *ocache.OCache, id string) *AccountDataWorker {
+func NewAccountDataWorker(sugar *zap.SugaredLogger, binanceContext *BContext) *AccountDataWorker {
 	return &AccountDataWorker{
-		restClient:       respClient,
-		sugar:            sugar,
-		accountInfoStore: store,
-		completedOrder:   cache,
-		accountID:        id,
+		sugar:          sugar,
+		binanceContext: binanceContext,
 	}
 }
 
@@ -62,7 +55,7 @@ func (bc *AccountDataWorker) processMessages(messages chan []byte) {
 				return
 			}
 			logger.Infow("outbound account position", "content", fmt.Sprintf("%s", balanceBytes))
-			if err := bc.accountInfoStore.UpdateBalance(balance); err != nil {
+			if err := bc.binanceContext.AccountInfoStore.UpdateBalance(balance); err != nil {
 				logger.Errorw("failed to update balance info", "error", err)
 				return
 			}
@@ -74,7 +67,7 @@ func (bc *AccountDataWorker) processMessages(messages chan []byte) {
 			}
 			balanceUpdateBytes, _ := json.Marshal(balanceUpdate)
 			logger.Infow("balance update", "content", fmt.Sprintf("%s", balanceUpdateBytes))
-			if err := bc.accountInfoStore.UpdateBalanceDelta(&balanceUpdate); err != nil {
+			if err := bc.binanceContext.AccountInfoStore.UpdateBalanceDelta(&balanceUpdate); err != nil {
 				logger.Errorw("failed to update account balance delta", "error", err)
 				return
 			}
@@ -88,14 +81,18 @@ func (bc *AccountDataWorker) processMessages(messages chan []byte) {
 				"state", o.CurrentOrderStatus, "symbol", o.Symbol)
 			oBytes, _ := json.Marshal(o)
 			logger.Infow("execution report", "content", fmt.Sprintf("%s", oBytes))
-			order, del, err := bc.accountInfoStore.UpdateOrder(o)
+			order, del, err := bc.binanceContext.AccountInfoStore.UpdateOrder(o)
 			if err != nil {
 				logger.Errorw("failed to update order info", "err", err)
 				return
 			}
 			if del {
-				bc.completedOrder.Set(common.MakeCompletedOrderID(bc.accountID, order.Symbol, order.OrderID), order)
+				bc.binanceContext.CompletedOrders.Set(common.MakeCompletedOrderID(order.Symbol, order.OrderID), order)
 			}
+			// as we receive order event, it no longer under tracking list,
+			orderID := common.MakeCompletedOrderID(o.Symbol, o.OrderID)
+			bc.binanceContext.WSOrderTracker.Remove(orderID)
+			bc.sugar.Infow("remove order from tracking", "orderID", orderID)
 		}
 	}
 }
@@ -228,6 +225,7 @@ func (bc *AccountDataWorker) subscribeDataStream(messages chan<- []byte, listenK
 	var (
 		logger   = bc.sugar.With("func", caller.GetCurrentFunctionName())
 		wsDialer ws.Dialer
+		quit     int64 = 0
 	)
 	endpoint := fmt.Sprintf("wss://stream.binance.com:9443/ws/%s", listenKey)
 	wsConn, _, err := wsDialer.Dial(endpoint, nil)
@@ -237,26 +235,11 @@ func (bc *AccountDataWorker) subscribeDataStream(messages chan<- []byte, listenK
 	}
 	defer func() {
 		_ = wsConn.Close()
+		atomic.StoreInt64(&quit, 1)
 	}()
 	logger.Infow("ws connection started", "remote", wsConn.RemoteAddr().String())
 	go func() {
-		startTime := time.Now()
-		tick := time.NewTicker(time.Second * 30)
-		defer tick.Stop()
-		for range tick.C {
-			if time.Since(startTime) > time.Hour*23+time.Minute*30 {
-				logger.Infow("connection end of life, reset now")
-				_ = wsConn.Close() // binance should send close message right after 24h, but for sure, we check again at 24h2min
-				// should not reach here
-				break
-			}
-			logger.Infow("sending pong..")
-			err := wsConn.WriteControl(ws.PongMessage, []byte("pong"), time.Now().Add(time.Second*2))
-			if err != nil {
-				logger.Errorw("websocket connection error detected", "err", err)
-				break
-			}
-		}
+		bc.checkOrder(&quit, wsConn)
 	}()
 	tm := time.NewTimer(time.Second)
 	tm.Stop()
@@ -278,21 +261,49 @@ func (bc *AccountDataWorker) subscribeDataStream(messages chan<- []byte, listenK
 	}
 }
 
+func (bc *AccountDataWorker) checkOrder(quit *int64, wsConn *ws.Conn) {
+	tic := time.NewTicker(time.Second)
+	defer tic.Stop()
+mainLoop:
+	for range tic.C {
+		// the socket was close, abort checking..
+		if atomic.LoadInt64(quit) == 1 {
+			return
+		}
+		for {
+			_, id, ts, ok := bc.binanceContext.WSOrderTracker.PeekFront()
+			if !ok { // nothing under tracking
+				continue mainLoop
+			}
+			currentMillis := common.CurrentMillis()
+			if currentMillis-ts < bc.binanceContext.OrderTrackMillis {
+				continue mainLoop // the item not old enough
+			}
+			// the order stay in order list so long, consider restart WS session.
+			bc.sugar.Errorw("an order has no WS event since created",
+				"id", id, "order_time", ts, "currentMillis", currentMillis)
+			_ = wsConn.Close()
+			return
+		}
+	}
+}
+
 func (bc *AccountDataWorker) initWSSession() (string, error) {
 
-	listenKey, err := bc.restClient.CreateListenKey()
+	restClient := bc.binanceContext.RestClient
+	listenKey, err := restClient.CreateListenKey()
 	if err != nil {
 		bc.sugar.Errorw("failed to create listen key", "error", err)
 		return "", err
 	}
 	bc.sugar.Info("fetched listenKey ...", listenKey[len(listenKey)-5:])
 	// init account info
-	accountState, err := bc.restClient.GetAccountState()
+	accountState, err := restClient.GetAccountState()
 	if err != nil {
 		bc.sugar.Errorw("failed to init account info", "error", err)
 		return "", err
 	}
-	orders, _, err := bc.restClient.GetOpenOrders("")
+	orders, _, err := restClient.GetOpenOrders("")
 	if err != nil {
 		bc.sugar.Errorw("failed to read open orders", "err", err)
 		return "", err
@@ -304,7 +315,7 @@ func (bc *AccountDataWorker) initWSSession() (string, error) {
 	for _, o := range orders {
 		info.OpenOrder[UniqOrder(o.Symbol, o.OrderID)] = o
 	}
-	bc.accountInfoStore.SetData(info)
+	bc.binanceContext.AccountInfoStore.SetData(info)
 	return listenKey, nil
 }
 
@@ -329,6 +340,7 @@ func (bc *AccountDataWorker) Run() {
 				updater.Stop()
 				time.Sleep(time.Second * 5)
 			}
+			bc.binanceContext.WSOrderTracker.Reset()
 		}
 	}()
 }
@@ -337,7 +349,7 @@ func (bc *AccountDataWorker) keepAliveKey(key string) *time.Ticker {
 	t := time.NewTicker(time.Minute * 30)
 	go func() {
 		for range t.C {
-			err := bc.restClient.KeepListenKeyAlive(key)
+			err := bc.binanceContext.RestClient.KeepListenKeyAlive(key)
 			if err != nil {
 				bc.sugar.Errorw("failed to keep listen key alive", "err", err)
 			}
