@@ -315,6 +315,24 @@ func (bc *Client) Withdraw(symbol string, amount string, address string) (string
 	return result.ID, fwd, err
 }
 
+// WithdrawToMainAccount withdraw from sub account to main account
+func (bc *Client) WithdrawToMainAccount(asset, amount string) (string, *FwdData, error) {
+	var (
+		result TransferToMasterResponse
+	)
+	requestURL := fmt.Sprintf("%s/sapi/v1/sub-account/transfer/subToMaster", apiBaseURL)
+	req, err := NewRequestBuilder(http.MethodPost, requestURL, nil)
+	if err != nil {
+		return txID, err
+	}
+	rr := req.WithHeader(apiKeyHeader, bc.apiKey).
+		WithParam("asset", asset).
+		WithParam("amount", amount).
+		SignedRequest(bc.secretKey)
+	fws, err := bc.doRequest(rr, &result)
+	return result.TxID, err
+}
+
 // GetDepositAddress ...
 func (bc *Client) GetDepositAddress(asset string) (BDepositAddress, *FwdData, error) {
 	var result BDepositAddress

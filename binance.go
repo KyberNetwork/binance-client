@@ -298,6 +298,11 @@ type TradeHistoryList []struct {
 	IsBestMatch  bool   `json:"isBestMatch"`
 }
 
+// TransferToMasterResponse ...
+type TransferToMasterResponse struct {
+	TxID string `json:"txnId"`
+}
+
 type BStatus interface {
 	Status() (bool, string)
 }
