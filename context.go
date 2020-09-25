@@ -12,4 +12,5 @@ type BContext struct {
 	WSOrderTracker   *orderlist.OrderList
 	CompletedOrders  *ocache.OCache
 	OrderTrackMillis int64
+	MainClient       *Client
 }
