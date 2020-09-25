@@ -323,14 +323,20 @@ func (bc *Client) WithdrawToMainAccount(asset, amount string) (string, *FwdData,
 	requestURL := fmt.Sprintf("%s/sapi/v1/sub-account/transfer/subToMaster", apiBaseURL)
 	req, err := NewRequestBuilder(http.MethodPost, requestURL, nil)
 	if err != nil {
-		return txID, err
+		return "", nil, err
 	}
 	rr := req.WithHeader(apiKeyHeader, bc.apiKey).
 		WithParam("asset", asset).
 		WithParam("amount", amount).
 		SignedRequest(bc.secretKey)
-	fws, err := bc.doRequest(rr, &result)
-	return result.TxID, err
+	fwd, err := bc.doRequest(rr, &result)
+	if err != nil {
+		return "", fwd, err
+	}
+	if !result.Success && fwd != nil {
+		return "", fwd, errors.Errorf("binance failure: %s", string(fwd.Data))
+	}
+	return result.TxID, fwd, err
 }
 
 // GetDepositAddress ...

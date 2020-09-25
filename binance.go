@@ -300,6 +300,7 @@ type TradeHistoryList []struct {
 
 // TransferToMasterResponse ...
 type TransferToMasterResponse struct {
+	StatusImpl
 	TxID string `json:"txnId"`
 }
 
