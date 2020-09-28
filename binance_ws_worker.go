@@ -60,7 +60,7 @@ func (bc *AccountDataWorker) processMessages(messages chan []byte) {
 			}
 		case balanceUpdate:
 			var balanceUpdate BalanceUpdate
-			if err := json.Unmarshal(m, &balanceUpdate); err != nil {
+			if err := bc.parseBalanceUpdate(m, logger, &balanceUpdate); err != nil {
 				logger.Errorw("failed to unmarshal balanceUpdate", "error", err)
 				return
 			}
@@ -215,6 +215,29 @@ func (bc *AccountDataWorker) parseAccountBalance(m []byte, logger *zap.SugaredLo
 	if err := json.Unmarshal(balanceByte, &balance); err != nil {
 		logger.Errorw("failed to parse balance data", "err", err)
 		return fmt.Errorf("failed to parse balance data: %s", err)
+	}
+	return nil
+}
+
+func (bc *AccountDataWorker) parseBalanceUpdate(m []byte, logger *zap.SugaredLogger, balance *BalanceUpdate) error {
+	var (
+		err error
+	)
+	balance.EventTime, err = jsonparser.GetInt(m, "E")
+	if err != nil {
+		return err
+	}
+	balance.Asset, err = jsonparser.GetString(m, "a")
+	if err != nil {
+		return err
+	}
+	balance.BalanceDelta, err = jsonparser.GetString(m, "d")
+	if err != nil {
+		return err
+	}
+	balance.ClearTime, err = jsonparser.GetInt(m, "T")
+	if err != nil {
+		return err
 	}
 	return nil
 }
