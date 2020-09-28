@@ -163,6 +163,8 @@ func (bc *Client) GetOpenOrders(symbol string) ([]*OpenOrder, *FwdData, error) {
 	fwd, err := bc.doRequest(rq, &response)
 	return response, fwd, err
 }
+
+// OrderStatus ...
 func (bc *Client) OrderStatus(symbol string, id int64) (*OpenOrder, *FwdData, error) {
 	result := OpenOrder{}
 	requestURL := fmt.Sprintf("%s/api/v3/order", apiBaseURL)
@@ -315,8 +317,8 @@ func (bc *Client) Withdraw(symbol string, amount string, address string) (string
 	return result.ID, fwd, err
 }
 
-// WithdrawToMainAccount withdraw from sub account to main account
-func (bc *Client) WithdrawToMainAccount(asset, amount string) (string, *FwdData, error) {
+// TransferToMainAccount withdraw from sub account to main account
+func (bc *Client) TransferToMainAccount(asset, amount string) (string, *FwdData, error) {
 	var (
 		result TransferToMasterResponse
 	)
@@ -332,9 +334,6 @@ func (bc *Client) WithdrawToMainAccount(asset, amount string) (string, *FwdData,
 	fwd, err := bc.doRequest(rr, &result)
 	if err != nil {
 		return "", fwd, err
-	}
-	if !result.Success && fwd != nil {
-		return "", fwd, errors.Errorf("binance failure: %s", string(fwd.Data))
 	}
 	return result.TxID, fwd, err
 }
