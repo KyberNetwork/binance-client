@@ -124,7 +124,7 @@ func (bc *Client) GetAccountState() (AccountState, error) {
 }
 
 // CreateOrder create a limit order
-func (bc *Client) CreateOrder(side, symbol, ordType, timeInForce, price, amount string) (CreateOrderResult, *FwdData, error) {
+func (bc *Client) CreateOrder(side, symbol, ordType, timeInForce, price, quantity string) (CreateOrderResult, *FwdData, error) {
 	var (
 		response CreateOrderResult
 	)
@@ -138,7 +138,7 @@ func (bc *Client) CreateOrder(side, symbol, ordType, timeInForce, price, amount 
 		WithParam("side", side).
 		WithParam("type", ordType).
 		WithParam("timeInForce", timeInForce).
-		WithParam("quantity", amount).
+		WithParam("quantity", quantity).
 		WithParam("price", price).
 		SignedRequest(bc.secretKey)
 	fwd, err := bc.doRequest(rr, &response)
