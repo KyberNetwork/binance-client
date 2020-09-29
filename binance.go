@@ -230,10 +230,10 @@ type OutboundAccountPosition struct {
 
 // BalanceUpdate payload
 type BalanceUpdate struct {
-	EventTime    uint64 `json:"E"`
+	EventTime    int64  `json:"E"`
 	Asset        string `json:"a"`
 	BalanceDelta string `json:"d"`
-	ClearTime    uint64 `json:"T"`
+	ClearTime    int64  `json:"T"`
 }
 
 // ExecutionReport object
