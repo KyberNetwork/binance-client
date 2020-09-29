@@ -300,7 +300,7 @@ type TradeHistoryList []struct {
 
 // TransferToMasterResponse ...
 type TransferToMasterResponse struct {
-	TxID string `json:"txnId"`
+	TxID int64 `json:"txnId"`
 }
 
 type BStatus interface {

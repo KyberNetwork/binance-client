@@ -86,7 +86,7 @@ func (bc *Client) doRequest(req *http.Request, data interface{}) (*FwdData, erro
 			return fwd, nil
 		}
 		if err = json.Unmarshal(respBody, data); err != nil {
-			return fwd, errors.Wrap(err, "failed to parse data into struct")
+			return fwd, errors.Wrapf(err, "failed to parse data into struct: %s", respBody)
 		}
 	default:
 		return fwd, errors.Errorf("%d, %s", resp.StatusCode, string(respBody))
@@ -318,14 +318,14 @@ func (bc *Client) Withdraw(symbol string, amount string, address string) (string
 }
 
 // TransferToMainAccount withdraw from sub account to main account
-func (bc *Client) TransferToMainAccount(asset, amount string) (string, *FwdData, error) {
+func (bc *Client) TransferToMainAccount(asset, amount string) (int64, *FwdData, error) {
 	var (
 		result TransferToMasterResponse
 	)
 	requestURL := fmt.Sprintf("%s/sapi/v1/sub-account/transfer/subToMaster", apiBaseURL)
 	req, err := NewRequestBuilder(http.MethodPost, requestURL, nil)
 	if err != nil {
-		return "", nil, err
+		return 0, nil, err
 	}
 	rr := req.WithHeader(apiKeyHeader, bc.apiKey).
 		WithParam("asset", asset).
@@ -333,7 +333,7 @@ func (bc *Client) TransferToMainAccount(asset, amount string) (string, *FwdData,
 		SignedRequest(bc.secretKey)
 	fwd, err := bc.doRequest(rr, &result)
 	if err != nil {
-		return "", fwd, err
+		return 0, fwd, err
 	}
 	return result.TxID, fwd, err
 }
