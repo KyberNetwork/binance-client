@@ -58,6 +58,7 @@ func (bc *AccountDataWorker) processMessages(messages chan []byte) {
 			var balanceUpdate BalanceUpdate
 			if err := bc.parseBalanceUpdate(m, logger, &balanceUpdate); err != nil {
 				logger.Fatalw("failed to unmarshal balanceUpdate", "error", err)
+
 			}
 			balanceUpdateBytes, _ := json.Marshal(balanceUpdate)
 			logger.Infow("balance update", "content", fmt.Sprintf("%s", balanceUpdateBytes))
