@@ -14,6 +14,7 @@ import (
 )
 
 const (
+	outboundAccountInfo     = "outboundAccountInfo"
 	outboundAccountPosition = "outboundAccountPosition"
 	balanceUpdate           = "balanceUpdate"
 	executionReport         = "executionReport"
@@ -40,41 +41,33 @@ func (bc *AccountDataWorker) processMessages(messages chan []byte) {
 	for m := range messages {
 		eventType, err := jsonparser.GetString(m, "e")
 		if err != nil {
-			logger.Errorw("failed to get eventType", "error", err)
-			return
+			logger.Fatalw("failed to get eventType", "error", err)
 		}
 		switch eventType {
+		case outboundAccountInfo:
+			logger.Info("skip outboundAccountInfo event as it will be removed in 1/1/2021")
 		case outboundAccountPosition:
 			var balance []*PayloadBalance
 			if err := bc.parseAccountBalance(m, logger, &balance); err != nil {
-				return
+				logger.Fatalw("failed to update balance info", "error", err)
 			}
-			balanceBytes, err := json.Marshal(balance)
-			if err != nil {
-				return
-			}
-			logger.Infow("outbound account position", "content", fmt.Sprintf("%s", balanceBytes))
 			if err := bc.binanceContext.AccountInfoStore.UpdateBalance(balance); err != nil {
-				logger.Errorw("failed to update balance info", "error", err)
-				return
+				logger.Fatalw("failed to update balance info", "error", err)
 			}
 		case balanceUpdate:
 			var balanceUpdate BalanceUpdate
 			if err := bc.parseBalanceUpdate(m, logger, &balanceUpdate); err != nil {
-				logger.Errorw("failed to unmarshal balanceUpdate", "error", err)
-				return
+				logger.Fatalw("failed to unmarshal balanceUpdate", "error", err)
 			}
 			balanceUpdateBytes, _ := json.Marshal(balanceUpdate)
 			logger.Infow("balance update", "content", fmt.Sprintf("%s", balanceUpdateBytes))
 			if err := bc.binanceContext.AccountInfoStore.UpdateBalanceDelta(&balanceUpdate); err != nil {
-				logger.Errorw("failed to update account balance delta", "error", err)
-				return
+				logger.Fatalw("failed to update account balance delta", "error", err)
 			}
 		case executionReport:
 			o, err := parseAccountOrder(m)
 			if err != nil {
-				logger.Errorw("failed to parse order info", "err", err)
-				return
+				logger.Fatalw("failed to parse order info", "err", err)
 			}
 			logger.Infow("update order state", "order_id", o.OrderID,
 				"state", o.CurrentOrderStatus, "symbol", o.Symbol)
@@ -82,8 +75,7 @@ func (bc *AccountDataWorker) processMessages(messages chan []byte) {
 			logger.Infow("execution report", "content", fmt.Sprintf("%s", oBytes))
 			order, del, err := bc.binanceContext.AccountInfoStore.UpdateOrder(o)
 			if err != nil {
-				logger.Errorw("failed to update order info", "err", err)
-				return
+				logger.Fatalw("failed to update order info", "err", err)
 			}
 			if del {
 				bc.binanceContext.CompletedOrders.Set(common.MakeCompletedOrderID(order.Symbol, order.OrderID), order)
@@ -92,6 +84,8 @@ func (bc *AccountDataWorker) processMessages(messages chan []byte) {
 			orderID := common.MakeCompletedOrderID(o.Symbol, o.OrderID)
 			bc.binanceContext.WSOrderTracker.Remove(orderID)
 			bc.sugar.Infow("remove order from tracking", "orderID", orderID)
+		default:
+			logger.Warnw("this event is somehow not processed", "event", eventType)
 		}
 	}
 }
