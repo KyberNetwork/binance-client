@@ -3,6 +3,8 @@ package binance
 import (
 	"encoding/json"
 	"fmt"
+	"strconv"
+	"strings"
 	"sync/atomic"
 	"time"
 
@@ -277,6 +279,15 @@ func (bc *AccountDataWorker) subscribeDataStream(messages chan<- []byte, listenK
 		}
 	}
 }
+func splitID(id string) (string, int64) {
+	parts := strings.Split(id, "_")
+	if len(parts) != 2 {
+		return id, 0
+	}
+	// we ignore error as in that case, treat it just like order not found
+	i, _ := strconv.ParseInt(parts[1], 10, 0)
+	return parts[0], i
+}
 
 func (bc *AccountDataWorker) checkOrder(quit *int64, wsConn *ws.Conn) {
 	tic := time.NewTicker(time.Second)
@@ -288,13 +299,28 @@ mainLoop:
 			return
 		}
 		for {
-			_, id, ts, ok := bc.binanceContext.WSOrderTracker.PeekFront()
+			ref, id, ts, ok := bc.binanceContext.WSOrderTracker.PeekFront()
 			if !ok { // nothing under tracking
 				continue mainLoop
 			}
 			currentMillis := common.CurrentMillis()
 			if currentMillis-ts < bc.binanceContext.OrderTrackMillis {
 				continue mainLoop // the item not old enough
+			}
+			// sometimes an order is create and ws event come immediately after that => event will clear order
+			// in track list before InsertOrder get called.
+			// result is we will tracking an order already standing in open orders(or even completed list)
+			// so we check it again here
+			symbol, orderID := splitID(id)
+			if _, err := bc.binanceContext.AccountInfoStore.OrderStatus(symbol, orderID); err == nil {
+				// found in open order, discard
+				bc.binanceContext.WSOrderTracker.RemoveByRef(ref)
+				continue
+			}
+			// complete super fast
+			if _, ok := bc.binanceContext.CompletedOrders.Get(id); ok {
+				bc.binanceContext.WSOrderTracker.RemoveByRef(ref)
+				continue
 			}
 			// the order stay in order list so long, consider restart WS session.
 			bc.sugar.Errorw("an order has no WS event since created",
