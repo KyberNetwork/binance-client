@@ -219,7 +219,7 @@ func (bc *Client) GetAccountTradeHistory(base, quote string, limit int64, fromID
 }
 
 // WithdrawHistory query recent withdraw list
-func (bc *Client) WithdrawHistory(fromMillis, toMillis int64) (WithdrawalsList, *FwdData, error) {
+func (bc *Client) WithdrawHistory(startTime, endTime string) (WithdrawalsList, *FwdData, error) {
 	result := WithdrawalsList{}
 	requestURL := fmt.Sprintf("%s/wapi/v3/withdrawHistory.html", apiBaseURL)
 	req, err := NewRequestBuilder(http.MethodGet, requestURL, nil)
@@ -227,8 +227,8 @@ func (bc *Client) WithdrawHistory(fromMillis, toMillis int64) (WithdrawalsList, 
 		return WithdrawalsList{}, nil, err
 	}
 	rr := req.WithHeader(apiKeyHeader, bc.apiKey).
-		WithParam("startTime", strconv.FormatInt(fromMillis, 10)).
-		WithParam("endTime", strconv.FormatInt(toMillis, 10)).
+		WithParam("startTime", startTime).
+		WithParam("endTime", endTime).
 		SignedRequest(bc.secretKey)
 	fwd, err := bc.doRequest(rr, &result)
 	if err != nil {
