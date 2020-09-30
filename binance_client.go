@@ -294,7 +294,7 @@ func (bc *Client) CancelAllOrder(symbol string) ([]BOrder, *FwdData, error) {
 }
 
 // Withdraw ...
-func (bc *Client) Withdraw(symbol string, amount string, address string) (string, *FwdData, error) {
+func (bc *Client) Withdraw(symbol, amount, address, name string) (string, *FwdData, error) {
 	var result WithdrawResult
 	requestURL := fmt.Sprintf("%s/wapi/v3/withdraw.html", apiBaseURL)
 	req, err := NewRequestBuilder(http.MethodPost, requestURL, nil)
@@ -302,9 +302,9 @@ func (bc *Client) Withdraw(symbol string, amount string, address string) (string
 		return "", nil, err
 	}
 	rr := req.WithHeader(apiKeyHeader, bc.apiKey).
-		WithParam("symbol", symbol).
+		WithParam("asset", symbol).
 		WithParam("address", address).
-		WithParam("name", "reserve").
+		WithParam("name", name).
 		WithParam("amount", amount).
 		SignedRequest(bc.secretKey)
 	fwd, err := bc.doRequest(rr, &result)
