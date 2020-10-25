@@ -6,6 +6,8 @@ import (
 
 	"github.com/shopspring/decimal"
 	"go.uber.org/zap"
+
+	"github.com/KyberNetwork/cex_account_data/common"
 )
 
 // BAccountInfoStore store account info
@@ -32,14 +34,9 @@ func (ai *BAccountInfoStore) SetAccountState(data *AccountState) error {
 	return nil
 }
 
-// UniqOrder ...
-func UniqOrder(symbol string, orderID int64) string {
-	return fmt.Sprintf("%s_%d", symbol, orderID)
-}
-
 // UpdateOrder will update order state
 func (ai *BAccountInfoStore) UpdateOrder(o *ExecutionReport) (*OpenOrder, bool, error) {
-	orderID := UniqOrder(o.Symbol, o.OrderID)
+	orderID := common.MakeCompletedOrderID(o.Symbol, o.OrderID)
 	ai.mu.Lock()
 	defer ai.mu.Unlock()
 	order, ok := ai.AccountInfo.OpenOrder[orderID]

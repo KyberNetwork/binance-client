@@ -38,7 +38,7 @@ func NewAccountDataWorker(sugar *zap.SugaredLogger, binanceContext *BContext) *A
 
 func (bc *AccountDataWorker) processMessages(messages chan []byte) {
 	var (
-		logger = bc.sugar
+		logger = bc.sugar.With("account", bc.binanceContext.AccountID)
 	)
 	for m := range messages {
 		eventType, err := jsonparser.GetString(m, "e")
@@ -80,13 +80,14 @@ func (bc *AccountDataWorker) processMessages(messages chan []byte) {
 			if err != nil {
 				logger.Fatalw("failed to update order info", "err", err)
 			}
+			orderID := common.MakeCompletedOrderID(o.Symbol, o.OrderID)
 			if del {
-				bc.binanceContext.CompletedOrders.Set(common.MakeCompletedOrderID(order.Symbol, order.OrderID), order)
+				bc.binanceContext.CompletedOrders.Set(orderID, order)
+				logger.Infow("add completion order", "orderID", orderID)
 			}
 			// as we receive order event, it no longer under tracking list,
-			orderID := common.MakeCompletedOrderID(o.Symbol, o.OrderID)
 			bc.binanceContext.WSOrderTracker.Remove(orderID)
-			bc.sugar.Infow("remove order from tracking", "orderID", orderID)
+			logger.Infow("remove order from tracking", "orderID", orderID)
 		default:
 			logger.Warnw("this event is somehow not processed", "event", eventType)
 		}
