@@ -82,8 +82,11 @@ func (bc *AccountDataWorker) processMessages(messages chan []byte) {
 			}
 			orderID := common.MakeCompletedOrderID(o.Symbol, o.OrderID)
 			if del {
-				bc.binanceContext.CompletedOrders.Set(orderID, order)
-				logger.Infow("add completion order", "orderID", orderID)
+				removedID := bc.binanceContext.CompletedOrders.Set(orderID, order)
+				logger.Infow("completion order add", "orderID", orderID)
+				if removedID != "" {
+					logger.Infow("completion tracking remove", "orderID", removedID)
+				}
 			}
 			// as we receive order event, it no longer under tracking list,
 			bc.binanceContext.WSOrderTracker.Remove(orderID)
