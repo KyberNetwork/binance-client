@@ -357,7 +357,7 @@ func (bc *AccountDataWorker) initWSSession() (string, error) {
 		OpenOrder: make(map[string]*OpenOrder),
 	}
 	for _, o := range orders {
-		info.OpenOrder[UniqOrder(o.Symbol, o.OrderID)] = o
+		info.OpenOrder[common.MakeCompletedOrderID(o.Symbol, o.OrderID)] = o
 	}
 	bc.binanceContext.AccountInfoStore.SetData(info)
 	return listenKey, nil
