@@ -23,6 +23,7 @@ type Client struct {
 	httpClient *http.Client
 	apiKey     string
 	secretKey  string
+	email      string
 }
 
 // FwdData contain data we forward to client
@@ -33,12 +34,18 @@ type FwdData struct {
 }
 
 // NewBinanceClient create new client object
-func NewBinanceClient(key, secret string) *Client {
+func NewBinanceClient(key, secret, email string) *Client {
 	return &Client{
 		httpClient: &http.Client{Timeout: defaultTimeout},
 		apiKey:     key,
 		secretKey:  secret,
+		email:      email,
 	}
+}
+
+// GetEmail return account email
+func (bc *Client) GetEmail() string {
+	return bc.email
 }
 
 // ListenKey is listen for user data stream
@@ -390,7 +397,7 @@ func (bc *Client) TransferToSubHistory(email string, fromTime, toTime int64) (Tr
 }
 
 // AssetTransfer transfer between main <-> sub and sub<->sub
-func (bc *Client) AssetTransfer(fromEmail, toEmail, asset string, amount float64) (TransferResult, *FwdData, error) {
+func (bc *Client) AssetTransfer(fromEmail, toEmail, asset, amount string) (TransferResult, *FwdData, error) {
 	var (
 		result TransferResult
 	)
@@ -403,7 +410,7 @@ func (bc *Client) AssetTransfer(fromEmail, toEmail, asset string, amount float64
 		WithParam("fromEmail", fromEmail).
 		WithParam("toEmail", toEmail).
 		WithParam("asset", asset).
-		WithParam("amount", strconv.FormatFloat(amount, 'f', -1, 64)).
+		WithParam("amount", amount).
 		SignedRequest(bc.secretKey)
 	fwd, err := bc.doRequest(rr, &result)
 	if err != nil {
