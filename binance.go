@@ -300,6 +300,43 @@ type TransferToMasterResponse struct {
 	TxID int64 `json:"txnId"`
 }
 
+type SubAccountResult struct {
+	StatusImpl
+	SubAccounts []struct {
+		Email      string `json:"email"`
+		Status     string `json:"status"`
+		Activated  bool   `json:"activated"`
+		Mobile     string `json:"mobile"`
+		GAuth      bool   `json:"gAuth"`
+		CreateTime int64  `json:"createTime"`
+	} `json:"subAccounts"`
+}
+
+type TransferToSubHistoryResult struct {
+	StatusImpl
+	Transfers []struct {
+		From  string `json:"from"`
+		To    string `json:"to"`
+		Asset string `json:"asset"`
+		Qty   string `json:"qty"`
+		Time  int64  `json:"time"`
+	} `json:"transfers"`
+}
+
+type TransferResult struct {
+	StatusImpl
+	TxnID string `json:"txnId"`
+}
+
+type SubAccountAssetBalancesResult struct {
+	StatusImpl
+	Balances []struct {
+		Asset  string  `json:"asset"`
+		Free   float64 `json:"free"`
+		Locked float64 `json:"locked"`
+	} `json:"balances"`
+}
+
 type BStatus interface {
 	Status() (bool, string)
 }
