@@ -300,15 +300,59 @@ type TransferToMasterResponse struct {
 	TxID int64 `json:"txnId"`
 }
 
+// SubAccountResult ...
+type SubAccountResult struct {
+	StatusImpl
+	SubAccounts []struct {
+		Email      string `json:"email"`
+		Status     string `json:"status"`
+		Activated  bool   `json:"activated"`
+		Mobile     string `json:"mobile"`
+		GAuth      bool   `json:"gAuth"`
+		CreateTime int64  `json:"createTime"`
+	} `json:"subAccounts"`
+}
+
+// SubAccountTransferHistoryResult ...
+type SubAccountTransferHistoryResult struct {
+	StatusImpl
+	Transfers []struct {
+		From  string `json:"from"`
+		To    string `json:"to"`
+		Asset string `json:"asset"`
+		Qty   string `json:"qty"`
+		Time  int64  `json:"time"`
+	} `json:"transfers"`
+}
+
+// TransferResult ...
+type TransferResult struct {
+	StatusImpl
+	TxnID string `json:"txnId"`
+}
+
+// SubAccountAssetBalancesResult ...
+type SubAccountAssetBalancesResult struct {
+	StatusImpl
+	Balances []struct {
+		Asset  string  `json:"asset"`
+		Free   float64 `json:"free"`
+		Locked float64 `json:"locked"`
+	} `json:"balances"`
+}
+
+// BStatus ...
 type BStatus interface {
 	Status() (bool, string)
 }
 
+// StatusImpl ...
 type StatusImpl struct {
 	Success bool   `json:"success"`
 	Msg     string `json:"msg"`
 }
 
+// Status ...
 func (b *StatusImpl) Status() (bool, string) {
 	return b.Success, b.Msg
 }
@@ -329,6 +373,7 @@ type AccountTradeHistoryList []struct {
 	IsBestMatch     bool   `json:"isBestMatch"`
 }
 
+// WithdrawalsList ...
 type WithdrawalsList struct {
 	StatusImpl
 	Withdrawals []WithdrawalEntry `json:"withdrawList"`

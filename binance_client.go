@@ -23,6 +23,7 @@ type Client struct {
 	httpClient *http.Client
 	apiKey     string
 	secretKey  string
+	email      string
 }
 
 // FwdData contain data we forward to client
@@ -33,12 +34,18 @@ type FwdData struct {
 }
 
 // NewBinanceClient create new client object
-func NewBinanceClient(key, secret string) *Client {
+func NewBinanceClient(key, secret, email string) *Client {
 	return &Client{
 		httpClient: &http.Client{Timeout: defaultTimeout},
 		apiKey:     key,
 		secretKey:  secret,
+		email:      email,
 	}
+}
+
+// GetEmail return account email
+func (bc *Client) GetEmail() string {
+	return bc.email
 }
 
 // ListenKey is listen for user data stream
@@ -336,6 +343,106 @@ func (bc *Client) TransferToMainAccount(asset, amount string) (int64, *FwdData, 
 		return 0, fwd, err
 	}
 	return result.TxID, fwd, err
+}
+
+// SubAccountList list sub account detail
+func (bc *Client) SubAccountList(email, status string) (SubAccountResult, *FwdData, error) {
+	var (
+		result SubAccountResult
+	)
+	requestURL := fmt.Sprintf("%s/wapi/v3/sub-account/list.html", apiBaseURL)
+	req, err := NewRequestBuilder(http.MethodGet, requestURL, nil)
+	if err != nil {
+		return result, nil, err
+	}
+	rr := req.WithHeader(apiKeyHeader, bc.apiKey).
+		WithParam("email", email).
+		WithParam("status", status).
+		SignedRequest(bc.secretKey)
+	fwd, err := bc.doRequest(rr, &result)
+	if err != nil {
+		return result, fwd, err
+	}
+	if !result.Success && fwd != nil {
+		return result, fwd, errors.Errorf("binance failure: %s", string(fwd.Data))
+	}
+	return result, fwd, err
+}
+
+// SubAccountTransferHistory list transfer to sub account history
+func (bc *Client) SubAccountTransferHistory(email string, fromTime, toTime int64) (SubAccountTransferHistoryResult, *FwdData, error) {
+	var (
+		result SubAccountTransferHistoryResult
+	)
+	requestURL := fmt.Sprintf("%s/wapi/v3/sub-account/transfer/history.html", apiBaseURL)
+	req, err := NewRequestBuilder(http.MethodGet, requestURL, nil)
+	if err != nil {
+		return result, nil, err
+	}
+	rr := req.WithHeader(apiKeyHeader, bc.apiKey).
+		WithParam("email", email)
+	if fromTime != 0 && toTime != 0 {
+		rr = rr.WithParam("startTime", strconv.FormatInt(fromTime, 10)).
+			WithParam("endTime", strconv.FormatInt(toTime, 10))
+	}
+	rb := rr.SignedRequest(bc.secretKey)
+	fwd, err := bc.doRequest(rb, &result)
+	if err != nil {
+		return result, fwd, err
+	}
+	if !result.Success && fwd != nil {
+		return result, fwd, errors.Errorf("binance failure: %s", string(fwd.Data))
+	}
+	return result, fwd, err
+}
+
+// AssetTransfer transfer between main <-> sub and sub<->sub
+func (bc *Client) AssetTransfer(fromEmail, toEmail, asset, amount string) (TransferResult, *FwdData, error) {
+	var (
+		result TransferResult
+	)
+	requestURL := fmt.Sprintf("%s/wapi/v3/sub-account/transfer.html", apiBaseURL)
+	req, err := NewRequestBuilder(http.MethodPost, requestURL, nil)
+	if err != nil {
+		return result, nil, err
+	}
+	rr := req.WithHeader(apiKeyHeader, bc.apiKey).
+		WithParam("fromEmail", fromEmail).
+		WithParam("toEmail", toEmail).
+		WithParam("asset", asset).
+		WithParam("amount", amount).
+		SignedRequest(bc.secretKey)
+	fwd, err := bc.doRequest(rr, &result)
+	if err != nil {
+		return result, fwd, err
+	}
+	if !result.Success && fwd != nil {
+		return result, fwd, errors.Errorf("binance failure: %s", string(fwd.Data))
+	}
+	return result, fwd, err
+}
+
+// SubAccountAssetBalances transfer between main and sub acc
+func (bc *Client) SubAccountAssetBalances(email string) (SubAccountAssetBalancesResult, *FwdData, error) {
+	var (
+		result SubAccountAssetBalancesResult
+	)
+	requestURL := fmt.Sprintf("%s/wapi/v3/sub-account/assets.html", apiBaseURL)
+	req, err := NewRequestBuilder(http.MethodGet, requestURL, nil)
+	if err != nil {
+		return result, nil, err
+	}
+	rr := req.WithHeader(apiKeyHeader, bc.apiKey).
+		WithParam("email", email).
+		SignedRequest(bc.secretKey)
+	fwd, err := bc.doRequest(rr, &result)
+	if err != nil {
+		return result, fwd, err
+	}
+	if !result.Success && fwd != nil {
+		return result, fwd, errors.Errorf("binance failure: %s", string(fwd.Data))
+	}
+	return result, fwd, err
 }
 
 // GetDepositAddress ...
