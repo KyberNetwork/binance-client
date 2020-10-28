@@ -369,10 +369,10 @@ func (bc *Client) SubAccountList(email, status string) (SubAccountResult, *FwdDa
 	return result, fwd, err
 }
 
-// TransferToSubHistory list transfer to sub account history
-func (bc *Client) TransferToSubHistory(email string, fromTime, toTime int64) (TransferToSubHistoryResult, *FwdData, error) {
+// SubAccountTransferHistory list transfer to sub account history
+func (bc *Client) SubAccountTransferHistory(email string, fromTime, toTime int64) (SubAccountTransferHistoryResult, *FwdData, error) {
 	var (
-		result TransferToSubHistoryResult
+		result SubAccountTransferHistoryResult
 	)
 	requestURL := fmt.Sprintf("%s/wapi/v3/sub-account/transfer/history.html", apiBaseURL)
 	req, err := NewRequestBuilder(http.MethodGet, requestURL, nil)

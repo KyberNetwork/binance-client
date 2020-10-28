@@ -300,6 +300,7 @@ type TransferToMasterResponse struct {
 	TxID int64 `json:"txnId"`
 }
 
+// SubAccountResult ...
 type SubAccountResult struct {
 	StatusImpl
 	SubAccounts []struct {
@@ -312,7 +313,8 @@ type SubAccountResult struct {
 	} `json:"subAccounts"`
 }
 
-type TransferToSubHistoryResult struct {
+// SubAccountTransferHistoryResult ...
+type SubAccountTransferHistoryResult struct {
 	StatusImpl
 	Transfers []struct {
 		From  string `json:"from"`
@@ -323,11 +325,13 @@ type TransferToSubHistoryResult struct {
 	} `json:"transfers"`
 }
 
+// TransferResult ...
 type TransferResult struct {
 	StatusImpl
 	TxnID string `json:"txnId"`
 }
 
+// SubAccountAssetBalancesResult ...
 type SubAccountAssetBalancesResult struct {
 	StatusImpl
 	Balances []struct {
@@ -337,15 +341,18 @@ type SubAccountAssetBalancesResult struct {
 	} `json:"balances"`
 }
 
+// BStatus ...
 type BStatus interface {
 	Status() (bool, string)
 }
 
+// StatusImpl ...
 type StatusImpl struct {
 	Success bool   `json:"success"`
 	Msg     string `json:"msg"`
 }
 
+// Status ...
 func (b *StatusImpl) Status() (bool, string) {
 	return b.Success, b.Msg
 }
@@ -366,6 +373,7 @@ type AccountTradeHistoryList []struct {
 	IsBestMatch     bool   `json:"isBestMatch"`
 }
 
+// WithdrawalsList ...
 type WithdrawalsList struct {
 	StatusImpl
 	Withdrawals []WithdrawalEntry `json:"withdrawList"`
