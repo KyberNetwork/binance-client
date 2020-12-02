@@ -14,4 +14,5 @@ type BContext struct {
 	OrderTrackMillis int64
 	MainClient       *Client
 	AccountID        string
+	Email            string
 }

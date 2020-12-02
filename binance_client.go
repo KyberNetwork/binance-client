@@ -23,7 +23,6 @@ type Client struct {
 	httpClient *http.Client
 	apiKey     string
 	secretKey  string
-	email      string
 }
 
 // FwdData contain data we forward to client
@@ -33,19 +32,13 @@ type FwdData struct {
 	Data        []byte
 }
 
-// NewBinanceClient create new client object
-func NewBinanceClient(key, secret, email string) *Client {
+// NewClient create new client object
+func NewClient(key, secret string) *Client {
 	return &Client{
 		httpClient: &http.Client{Timeout: defaultTimeout},
 		apiKey:     key,
 		secretKey:  secret,
-		email:      email,
 	}
-}
-
-// GetEmail return account email
-func (bc *Client) GetEmail() string {
-	return bc.email
 }
 
 // ListenKey is listen for user data stream
@@ -53,12 +46,32 @@ type ListenKey struct {
 	ListenKey string `json:"listenKey"`
 }
 
-// CreateListenKey create a listen key for user data stream
-func (bc *Client) CreateListenKey() (string, error) {
+const (
+	listenKeySpot               = "api/v3/userDataStream"
+	listenKeyTypeMargin         = "sapi/v1/userDataStream"
+	listenKeyTypeIsolatedMargin = "sapi/v1/userDataStream/isolated"
+)
+
+// CreateListenKeySpot create a listen key for user data stream
+func (bc *Client) CreateListenKeySpot() (string, error) {
+	return bc.createListenKey(listenKeySpot)
+}
+
+// CreateListenKeyMargin create a listen key for user data stream
+func (bc *Client) CreateListenKeyMargin() (string, error) {
+	return bc.createListenKey(listenKeyTypeMargin)
+}
+
+// CreateListenKeySpot create a listen key for user data stream
+func (bc *Client) CreateListenKeyIsolatedMargin() (string, error) {
+	return bc.createListenKey(listenKeyTypeIsolatedMargin)
+}
+
+func (bc *Client) createListenKey(apiPath string) (string, error) {
 	var (
 		listenKey ListenKey
 	)
-	requestURL := fmt.Sprintf("%s/api/v3/userDataStream", apiBaseURL)
+	requestURL := fmt.Sprintf("%s/%s", apiBaseURL, apiPath)
 	req, err := NewRequestBuilder(http.MethodPost, requestURL, nil)
 	if err != nil {
 		return "", err
@@ -512,4 +525,184 @@ func (bc *Client) GetServerTime() (int64, *FwdData, error) {
 	fwd, err := bc.doRequest(rr, &result)
 
 	return result.ServerTime, fwd, err
+}
+
+type crossCommonResult struct {
+	TranID uint64 `json:"tranId"`
+}
+
+func (bc *Client) CrossMarginTransfer(asset string, amount string, mainToCross bool) (uint64, *FwdData, error) {
+	transType := ""
+	if mainToCross {
+		transType = "1"
+	} else {
+		transType = "2"
+	}
+	var (
+		result crossCommonResult
+	)
+	requestURL := fmt.Sprintf("%s/sapi/v1/margin/transfer", apiBaseURL)
+	req, err := NewRequestBuilder(http.MethodPost, requestURL, nil)
+	if err != nil {
+		return 0, nil, err
+	}
+	rr := req.WithHeader(apiKeyHeader, bc.apiKey).
+		WithParam("asset", asset).
+		WithParam("amount", amount).
+		WithParam("type", transType).
+		SignedRequest(bc.secretKey)
+	fwd, err := bc.doRequest(rr, &result)
+	if err != nil {
+		return 0, fwd, err
+	}
+
+	return result.TranID, fwd, err
+}
+
+func (bc *Client) CrossMarginBorrow(asset string, isIsolated bool, symbol string, amount string) (uint64, *FwdData, error) {
+	isISO := ""
+	if isIsolated {
+		isISO = "TRUE"
+	} else {
+		isISO = "FALSE"
+	}
+	var (
+		result crossCommonResult
+	)
+	requestURL := fmt.Sprintf("%s/sapi/v1/margin/loan", apiBaseURL)
+	req, err := NewRequestBuilder(http.MethodPost, requestURL, nil)
+	if err != nil {
+		return 0, nil, err
+	}
+	rr := req.WithHeader(apiKeyHeader, bc.apiKey).
+		WithParam("asset", asset).
+		WithParam("amount", amount)
+	if isIsolated {
+		rr = rr.WithParam("isIsolated", isISO).
+			WithParam("symbol", symbol)
+	}
+	sr := rr.SignedRequest(bc.secretKey)
+	fwd, err := bc.doRequest(sr, &result)
+	if err != nil {
+		return 0, fwd, err
+	}
+	return result.TranID, fwd, err
+}
+
+func (bc *Client) CrossMarginRepay(asset string, isIsolated bool, symbol string, amount string) (uint64, *FwdData, error) {
+	isISO := ""
+	if isIsolated {
+		isISO = "TRUE"
+	} else {
+		isISO = "FALSE"
+	}
+	var (
+		result crossCommonResult
+	)
+	requestURL := fmt.Sprintf("%s/sapi/v1/margin/repay", apiBaseURL)
+	req, err := NewRequestBuilder(http.MethodPost, requestURL, nil)
+	if err != nil {
+		return 0, nil, err
+	}
+	rr := req.WithHeader(apiKeyHeader, bc.apiKey).
+		WithParam("asset", asset).
+		WithParam("amount", amount)
+	if isIsolated {
+		rr = rr.WithParam("isIsolated", isISO).
+			WithParam("symbol", symbol)
+	}
+	sr := rr.SignedRequest(bc.secretKey)
+	fwd, err := bc.doRequest(sr, &result)
+	if err != nil {
+		return 0, fwd, err
+	}
+	return result.TranID, fwd, err
+}
+
+func (bc *Client) GetMarginAsset(asset string) (MarginAsset, *FwdData, error) {
+	var (
+		result MarginAsset
+	)
+	requestURL := fmt.Sprintf("%s/sapi/v1/margin/asset", apiBaseURL)
+	req, err := NewRequestBuilder(http.MethodGet, requestURL, nil)
+	if err != nil {
+		return result, nil, err
+	}
+	rr := req.WithHeader(apiKeyHeader, bc.apiKey).WithParam("asset", asset).Request()
+	fwd, err := bc.doRequest(rr, &result)
+	if err != nil {
+		return result, fwd, err
+	}
+	return result, fwd, err
+}
+
+func (bc *Client) GetMarginPair(symbol string) (MarginAsset, *FwdData, error) {
+	var (
+		result MarginAsset
+	)
+	requestURL := fmt.Sprintf("%s/sapi/v1/margin/pair", apiBaseURL)
+	req, err := NewRequestBuilder(http.MethodGet, requestURL, nil)
+	if err != nil {
+		return result, nil, err
+	}
+	rr := req.WithHeader(apiKeyHeader, bc.apiKey).WithParam("symbol", symbol).Request()
+	fwd, err := bc.doRequest(rr, &result)
+	if err != nil {
+		return result, fwd, err
+	}
+	return result, fwd, err
+}
+
+func (bc *Client) GetAllCrossMarginAssets() ([]MarginAsset, *FwdData, error) {
+	var (
+		result []MarginAsset
+	)
+	requestURL := fmt.Sprintf("%s/sapi/v1/margin/allAssets", apiBaseURL)
+	req, err := NewRequestBuilder(http.MethodGet, requestURL, nil)
+	if err != nil {
+		return result, nil, err
+	}
+	rr := req.WithHeader(apiKeyHeader, bc.apiKey).Request()
+	fwd, err := bc.doRequest(rr, &result)
+	if err != nil {
+		return result, fwd, err
+	}
+	return result, fwd, err
+}
+
+func (bc *Client) GetCrossMarginAccountDetails() (CrossMarginAccountDetails, *FwdData, error) {
+	var (
+		result CrossMarginAccountDetails
+	)
+	requestURL := fmt.Sprintf("%s/sapi/v1/margin/account", apiBaseURL)
+	req, err := NewRequestBuilder(http.MethodGet, requestURL, nil)
+	if err != nil {
+		return result, nil, err
+	}
+	rr := req.WithHeader(apiKeyHeader, bc.apiKey).SignedRequest(bc.secretKey)
+	fwd, err := bc.doRequest(rr, &result)
+	if err != nil {
+		return result, fwd, err
+	}
+	return result, fwd, err
+}
+
+func (bc *Client) GetMaxBorrowable(asset string, isolatedSymbol string) (MaxBorrowableResult, *FwdData, error) {
+	var (
+		result MaxBorrowableResult
+	)
+	requestURL := fmt.Sprintf("%s/sapi/v1/margin/maxBorrowable", apiBaseURL)
+	req, err := NewRequestBuilder(http.MethodGet, requestURL, nil)
+	if err != nil {
+		return result, nil, err
+	}
+	rr := req.WithHeader(apiKeyHeader, bc.apiKey).
+		WithParam("asset", asset).
+		WithParam("isolatedSymbol", isolatedSymbol).
+		SignedRequest(bc.secretKey)
+	fwd, err := bc.doRequest(rr, &result)
+	if err != nil {
+		return result, fwd, err
+	}
+	return result, fwd, err
 }

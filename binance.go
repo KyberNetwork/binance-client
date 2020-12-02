@@ -6,8 +6,6 @@ import (
 
 	"github.com/shopspring/decimal"
 	"go.uber.org/zap"
-
-	"github.com/KyberNetwork/cex_account_data/common"
 )
 
 // BAccountInfoStore store account info
@@ -25,6 +23,11 @@ func NewBinanceAccountInfoStore(l *zap.SugaredLogger, infoStorage *BAccountInfo)
 	}
 }
 
+// MakeCompletedOrderID build unique id from components
+func MakeCompletedOrderID(symbol string, orderID int64) string {
+	return fmt.Sprintf("%s_%d", symbol, orderID)
+}
+
 // SetAccountState init account info when start the service
 func (ai *BAccountInfoStore) SetAccountState(data *AccountState) error {
 
@@ -36,7 +39,7 @@ func (ai *BAccountInfoStore) SetAccountState(data *AccountState) error {
 
 // UpdateOrder will update order state
 func (ai *BAccountInfoStore) UpdateOrder(o *ExecutionReport) (*OpenOrder, bool, error) {
-	orderID := common.MakeCompletedOrderID(o.Symbol, o.OrderID)
+	orderID := MakeCompletedOrderID(o.Symbol, o.OrderID)
 	ai.mu.Lock()
 	defer ai.mu.Unlock()
 	order, ok := ai.AccountInfo.OpenOrder[orderID]
@@ -509,4 +512,50 @@ type CreateOrderResult struct {
 	TimeInForce         string `json:"timeInForce"`
 	Type                string `json:"type"`
 	Side                string `json:"side"`
+}
+
+// MarginAsset ..
+type MarginAsset struct {
+	AssetFullName  string `json:"assetFullName"`
+	AssetName      string `json:"assetName"`
+	IsBorrowable   bool   `json:"isBorrowable"`
+	IsMortgageable bool   `json:"isMortgageable"`
+	UserMinBorrow  string `json:"userMinBorrow"`
+	UserMinRepay   string `json:"userMinRepay"`
+}
+
+// MarginPair ..
+type MarginPair struct {
+	ID            uint64 `json:"id"`
+	Symbol        string `json:"symbol"`
+	Base          string `json:"base"`
+	Quote         string `json:"quote"`
+	IsMarginTrade bool   `json:"isMarginTrade"`
+	IsBuyAllowed  bool   `json:"isBuyAllowed"`
+	IsSellAllowed bool   `json:"isSellAllowed"`
+}
+
+// CrossMarginAccountDetails ...
+type CrossMarginAccountDetails struct {
+	BorrowEnabled       bool   `json:"borrowEnabled"`
+	MarginLevel         string `json:"marginLevel"`
+	TotalAssetOfBtc     string `json:"totalAssetOfBtc"`
+	TotalLiabilityOfBtc string `json:"totalLiabilityOfBtc"`
+	TotalNetAssetOfBtc  string `json:"totalNetAssetOfBtc"`
+	TradeEnabled        bool   `json:"tradeEnabled"`
+	TransferEnabled     bool   `json:"transferEnabled"`
+	UserAssets          []struct {
+		Asset    string `json:"asset"`
+		Borrowed string `json:"borrowed"`
+		Free     string `json:"free"`
+		Interest string `json:"interest"`
+		Locked   string `json:"locked"`
+		NetAsset string `json:"netAsset"`
+	} `json:"userAssets"`
+}
+
+// MaxBorrowableResult ...
+type MaxBorrowableResult struct {
+	Amount      string `json:"amount"`
+	BorrowLimit string `json:"borrowLimit"`
 }

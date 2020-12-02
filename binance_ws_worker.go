@@ -80,7 +80,7 @@ func (bc *AccountDataWorker) processMessages(messages chan []byte) {
 			if err != nil {
 				logger.Fatalw("failed to update order info", "err", err)
 			}
-			orderID := common.MakeCompletedOrderID(o.Symbol, o.OrderID)
+			orderID := MakeCompletedOrderID(o.Symbol, o.OrderID)
 			if del {
 				removedID := bc.binanceContext.CompletedOrders.Set(orderID, order)
 				logger.Infow("completion order add", "orderID", orderID)
@@ -338,7 +338,7 @@ mainLoop:
 func (bc *AccountDataWorker) initWSSession() (string, error) {
 
 	restClient := bc.binanceContext.RestClient
-	listenKey, err := restClient.CreateListenKey()
+	listenKey, err := restClient.CreateListenKeySpot()
 	if err != nil {
 		bc.sugar.Errorw("failed to create listen key", "error", err)
 		return "", err
@@ -360,7 +360,7 @@ func (bc *AccountDataWorker) initWSSession() (string, error) {
 		OpenOrder: make(map[string]*OpenOrder),
 	}
 	for _, o := range orders {
-		info.OpenOrder[common.MakeCompletedOrderID(o.Symbol, o.OrderID)] = o
+		info.OpenOrder[MakeCompletedOrderID(o.Symbol, o.OrderID)] = o
 	}
 	bc.binanceContext.AccountInfoStore.SetData(info)
 	return listenKey, nil
