@@ -453,7 +453,7 @@ type BDepositAddress struct {
 // AssetDetailResult ...
 type AssetDetailResult struct {
 	StatusImpl
-	AssetDetail AssetDetail `json:"assetDetail"`
+	AssetDetail map[string]AssetDetail `json:"assetDetail"`
 }
 
 // AssetDetail ...
