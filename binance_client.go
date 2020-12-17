@@ -706,3 +706,20 @@ func (bc *Client) GetMaxBorrowable(asset string, isolatedSymbol string) (MaxBorr
 	}
 	return result, fwd, err
 }
+
+func (bc *Client) AllCoinInfo() (AllCoinInfo, error) {
+	var result []CoinInfo
+
+	requestURL := fmt.Sprintf("%s/sapi/v1/capital/config/getall", apiBaseURL)
+	req, err := NewRequestBuilder(http.MethodGet, requestURL, nil)
+	if err != nil {
+		return nil, err
+	}
+	rr := req.WithHeader(apiKeyHeader, bc.apiKey).
+		SignedRequest(bc.secretKey)
+	_, err = bc.doRequest(rr, &result)
+	if err != nil {
+		return nil, err
+	}
+	return result, err
+}

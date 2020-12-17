@@ -201,6 +201,14 @@ type AccountState struct {
 	Permissions      []string  `json:"permissions"`
 }
 
+func (a AccountState) TokensBalance() map[string]Balance {
+	res := make(map[string]Balance, len(a.Balances))
+	for _, b := range a.Balances {
+		res[b.Asset] = b
+	}
+	return res
+}
+
 // BAccountInfo object
 type BAccountInfo struct {
 	State     *AccountState
@@ -558,4 +566,45 @@ type CrossMarginAccountDetails struct {
 type MaxBorrowableResult struct {
 	Amount      string `json:"amount"`
 	BorrowLimit string `json:"borrowLimit"`
+}
+
+// CoinInfo ...
+type CoinInfo struct {
+	Coin             string `json:"coin"`
+	DepositAllEnable bool   `json:"depositAllEnable"`
+	Free             string `json:"free"`
+	Freeze           string `json:"freeze"`
+	IPOable          string `json:"ipoable"`
+	IsLegalMoney     bool   `json:"isLegalMoney"`
+	Locked           string `json:"locked"`
+	Name             string `json:"name"`
+	NetworkList      []struct {
+		AddressRegex       string `json:"addressRegex"`
+		Coin               string `json:"coin"`
+		DepositDesc        string `json:"depositDesc"`
+		DepositEnable      bool   `json:"depositEnable"`
+		IsDefault          bool   `json:"isDefault"`
+		MinConfirm         int64  `json:"minConfirm"`
+		Name               string `json:"name"`
+		Network            string `json:"network"`
+		ResetAddressStatus bool   `json:"resetAddressStatus"`
+		SpecialTips        string `json:"specialTips"`
+		UnLockConfirm      int64  `json:"unLockConfirm"`
+		WithdrawDesc       string `json:"withdrawDesc"`
+		WithdrawEnable     bool   `json:"withdrawEnable"`
+		WithdrawFee        string `json:"withdrawFee"`
+		WithdrawMin        string `json:"withdrawMin"`
+	} `json:"networkList"`
+}
+
+// AllCoinInfo ...
+type AllCoinInfo []CoinInfo
+
+// ToMap ...
+func (a AllCoinInfo) ToMap() map[string]CoinInfo {
+	res := make(map[string]CoinInfo, len(a))
+	for _, v := range a {
+		res[v.Coin] = v
+	}
+	return res
 }

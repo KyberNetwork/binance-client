@@ -13,6 +13,7 @@ type BContext struct {
 	CompletedOrders  *ocache.OCache
 	OrderTrackMillis int64
 	MainClient       *Client
+	CoinState        *CoinStateWorker
 	AccountID        string
 	Email            string
 }
