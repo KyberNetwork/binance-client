@@ -6,7 +6,6 @@ import (
 	"io/ioutil"
 	"net/http"
 	"strconv"
-	"strings"
 	"time"
 
 	"github.com/pkg/errors"
@@ -217,9 +216,8 @@ func (bc *Client) GetTradeHistory(symbol string, limit int64) (TradeHistoryList,
 }
 
 // GetAccountTradeHistory query account recent trade list
-func (bc *Client) GetAccountTradeHistory(base, quote string, limit int64, fromID string) (AccountTradeHistoryList, *FwdData, error) {
+func (bc *Client) GetAccountTradeHistory(symbol, startTime, endTime string, limit int64, fromID string) (AccountTradeHistoryList, *FwdData, error) {
 	result := AccountTradeHistoryList{}
-	symbol := strings.ToUpper(fmt.Sprintf("%s%s", base, quote))
 	requestURL := fmt.Sprintf("%s/api/v3/myTrades", apiBaseURL)
 	req, err := NewRequestBuilder(http.MethodGet, requestURL, nil)
 	if err != nil {
@@ -227,6 +225,8 @@ func (bc *Client) GetAccountTradeHistory(base, quote string, limit int64, fromID
 	}
 	rr := req.WithHeader(apiKeyHeader, bc.apiKey).
 		WithParam("symbol", symbol).
+		WithParam("startTime", startTime).
+		WithParam("endTime", endTime).
 		WithParam("limit", strconv.FormatInt(limit, 10))
 	if fromID != "" {
 		rr = rr.WithParam("fromId", fromID)
@@ -239,7 +239,7 @@ func (bc *Client) GetAccountTradeHistory(base, quote string, limit int64, fromID
 }
 
 // WithdrawHistory query recent withdraw list
-func (bc *Client) WithdrawHistory(startTime, endTime string) (WithdrawalsList, *FwdData, error) {
+func (bc *Client) WithdrawHistory(startTime, endTime, status, asset string) (WithdrawalsList, *FwdData, error) {
 	result := WithdrawalsList{}
 	requestURL := fmt.Sprintf("%s/wapi/v3/withdrawHistory.html", apiBaseURL)
 	req, err := NewRequestBuilder(http.MethodGet, requestURL, nil)
@@ -249,6 +249,8 @@ func (bc *Client) WithdrawHistory(startTime, endTime string) (WithdrawalsList, *
 	rr := req.WithHeader(apiKeyHeader, bc.apiKey).
 		WithParam("startTime", startTime).
 		WithParam("endTime", endTime).
+		WithParam("status", status).
+		WithParam("asset", asset).
 		SignedRequest(bc.secretKey)
 	fwd, err := bc.doRequest(rr, &result)
 	if err != nil {
@@ -261,7 +263,7 @@ func (bc *Client) WithdrawHistory(startTime, endTime string) (WithdrawalsList, *
 }
 
 // DepositHistory query recent withdraw list
-func (bc *Client) DepositHistory(fromMillis, toMillis int64) (DepositsList, *FwdData, error) {
+func (bc *Client) DepositHistory(asset, status string, startTime, endTime string) (DepositsList, *FwdData, error) {
 	result := DepositsList{}
 	requestURL := fmt.Sprintf("%s/wapi/v3/depositHistory.html", apiBaseURL)
 	req, err := NewRequestBuilder(http.MethodGet, requestURL, nil)
@@ -269,8 +271,10 @@ func (bc *Client) DepositHistory(fromMillis, toMillis int64) (DepositsList, *Fwd
 		return DepositsList{}, nil, err
 	}
 	rr := req.WithHeader(apiKeyHeader, bc.apiKey).
-		WithParam("startTime", strconv.FormatInt(fromMillis, 10)).
-		WithParam("endTime", strconv.FormatInt(toMillis, 10)).
+		WithParam("asset", asset).
+		WithParam("status", status).
+		WithParam("startTime", startTime).
+		WithParam("endTime", endTime).
 		SignedRequest(bc.secretKey)
 	fwd, err := bc.doRequest(rr, &result)
 	if err != nil {
@@ -383,7 +387,7 @@ func (bc *Client) SubAccountList(email, status string) (SubAccountResult, *FwdDa
 }
 
 // SubAccountTransferHistory list transfer to sub account history
-func (bc *Client) SubAccountTransferHistory(email string, fromTime, toTime int64) (SubAccountTransferHistoryResult, *FwdData, error) {
+func (bc *Client) SubAccountTransferHistory(email string, startTime, endTime string) (SubAccountTransferHistoryResult, *FwdData, error) {
 	var (
 		result SubAccountTransferHistoryResult
 	)
@@ -393,11 +397,9 @@ func (bc *Client) SubAccountTransferHistory(email string, fromTime, toTime int64
 		return result, nil, err
 	}
 	rr := req.WithHeader(apiKeyHeader, bc.apiKey).
-		WithParam("email", email)
-	if fromTime != 0 && toTime != 0 {
-		rr = rr.WithParam("startTime", strconv.FormatInt(fromTime, 10)).
-			WithParam("endTime", strconv.FormatInt(toTime, 10))
-	}
+		WithParam("email", email).
+		WithParam("startTime", startTime).
+		WithParam("endTime", endTime)
 	rb := rr.SignedRequest(bc.secretKey)
 	fwd, err := bc.doRequest(rb, &result)
 	if err != nil {
@@ -480,7 +482,7 @@ func (bc *Client) GetDepositAddress(asset string) (BDepositAddress, *FwdData, er
 }
 
 // GetAllAssetDetail ...
-func (bc *Client) GetAllAssetDetail(asset string) (AssetDetailResult, *FwdData, error) {
+func (bc *Client) GetAllAssetDetail() (AssetDetailResult, *FwdData, error) {
 	var result AssetDetailResult
 	requestURL := fmt.Sprintf("%s/wapi/v3/assetDetail.html", apiBaseURL)
 	req, err := NewRequestBuilder(http.MethodGet, requestURL, nil)
