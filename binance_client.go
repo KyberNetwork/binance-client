@@ -533,9 +533,9 @@ type crossCommonResult struct {
 	TranID uint64 `json:"tranId"`
 }
 
-func (bc *Client) CrossMarginTransfer(asset string, amount string, mainToCross bool) (uint64, *FwdData, error) {
+func (bc *Client) CrossMarginTransfer(asset string, amount string, spotToMargin bool) (uint64, *FwdData, error) {
 	transType := ""
-	if mainToCross {
+	if spotToMargin {
 		transType = "1"
 	} else {
 		transType = "2"
