@@ -7,8 +7,6 @@ import (
 	"net/http"
 	"strconv"
 	"time"
-
-	"github.com/pkg/errors"
 )
 
 const (
@@ -87,11 +85,11 @@ func (bc *Client) createListenKey(apiPath string) (string, error) {
 func (bc *Client) doRequest(req *http.Request, data interface{}) (*FwdData, error) {
 	resp, err := bc.httpClient.Do(req)
 	if err != nil {
-		return nil, errors.Wrap(err, "failed to execute the request")
+		return nil, fmt.Errorf("failed to execute the request, %w",err)
 	}
 	respBody, err := ioutil.ReadAll(resp.Body)
 	if err != nil {
-		return nil, errors.Wrap(err, "read response failed")
+		return nil, fmt.Errorf("read response failed, %w",err)
 	}
 	_ = resp.Body.Close()
 	fwd := &FwdData{
@@ -105,10 +103,10 @@ func (bc *Client) doRequest(req *http.Request, data interface{}) (*FwdData, erro
 			return fwd, nil
 		}
 		if err = json.Unmarshal(respBody, data); err != nil {
-			return fwd, errors.Wrapf(err, "failed to parse data into struct: %s", respBody)
+			return fwd, fmt.Errorf( "failed to parse data into struct: %s %w", respBody,err)
 		}
 	default:
-		return fwd, errors.Errorf("%d, %s", resp.StatusCode, string(respBody))
+		return fwd, fmt.Errorf("%d, %s", resp.StatusCode, string(respBody))
 	}
 	return fwd, nil
 }
@@ -257,7 +255,7 @@ func (bc *Client) WithdrawHistory(startTime, endTime, status, asset string) (Wit
 		return result, fwd, err
 	}
 	if !result.Success && fwd != nil {
-		return result, fwd, errors.Errorf("binance failure: %s", string(fwd.Data))
+		return result, fwd, fmt.Errorf("binance failure: %s", string(fwd.Data))
 	}
 	return result, fwd, err
 }
@@ -281,7 +279,7 @@ func (bc *Client) DepositHistory(asset, status string, startTime, endTime string
 		return result, fwd, err
 	}
 	if !result.Success && fwd != nil {
-		return result, fwd, errors.Errorf("binance failure: %s", string(fwd.Data))
+		return result, fwd, fmt.Errorf("binance failure: %s", string(fwd.Data))
 	}
 	return result, fwd, err
 }
@@ -336,7 +334,7 @@ func (bc *Client) Withdraw(symbol, amount, address, name string) (string, *FwdDa
 		return "", fwd, err
 	}
 	if !result.Success && fwd != nil {
-		return "", fwd, errors.Errorf("binance failure: %s", string(fwd.Data))
+		return "", fwd, fmt.Errorf("binance failure: %s", string(fwd.Data))
 	}
 	return result.ID, fwd, err
 }
@@ -381,7 +379,7 @@ func (bc *Client) SubAccountList(email, status string) (SubAccountResult, *FwdDa
 		return result, fwd, err
 	}
 	if !result.Success && fwd != nil {
-		return result, fwd, errors.Errorf("binance failure: %s", string(fwd.Data))
+		return result, fwd, fmt.Errorf("binance failure: %s", string(fwd.Data))
 	}
 	return result, fwd, err
 }
@@ -406,7 +404,7 @@ func (bc *Client) SubAccountTransferHistory(email string, startTime, endTime str
 		return result, fwd, err
 	}
 	if !result.Success && fwd != nil {
-		return result, fwd, errors.Errorf("binance failure: %s", string(fwd.Data))
+		return result, fwd, fmt.Errorf("binance failure: %s", string(fwd.Data))
 	}
 	return result, fwd, err
 }
@@ -432,7 +430,7 @@ func (bc *Client) AssetTransfer(fromEmail, toEmail, asset, amount string) (Trans
 		return result, fwd, err
 	}
 	if !result.Success && fwd != nil {
-		return result, fwd, errors.Errorf("binance failure: %s", string(fwd.Data))
+		return result, fwd, fmt.Errorf("binance failure: %s", string(fwd.Data))
 	}
 	return result, fwd, err
 }
@@ -455,7 +453,7 @@ func (bc *Client) SubAccountAssetBalances(email string) (SubAccountAssetBalances
 		return result, fwd, err
 	}
 	if !result.Success && fwd != nil {
-		return result, fwd, errors.Errorf("binance failure: %s", string(fwd.Data))
+		return result, fwd, fmt.Errorf("binance failure: %s", string(fwd.Data))
 	}
 	return result, fwd, err
 }
@@ -476,7 +474,7 @@ func (bc *Client) GetDepositAddress(asset string) (BDepositAddress, *FwdData, er
 		return result, fwd, err
 	}
 	if !result.Success && fwd != nil {
-		return result, fwd, errors.Errorf("binance failure: %s", string(fwd.Data))
+		return result, fwd, fmt.Errorf("binance failure: %s", string(fwd.Data))
 	}
 	return result, fwd, err
 }
@@ -496,7 +494,7 @@ func (bc *Client) GetAllAssetDetail() (AssetDetailResult, *FwdData, error) {
 		return result, fwd, err
 	}
 	if !result.Success && fwd != nil {
-		return result, fwd, errors.Errorf("binance failure: %s", string(fwd.Data))
+		return result, fwd, fmt.Errorf("binance failure: %s", string(fwd.Data))
 	}
 	return result, fwd, err
 }
@@ -709,19 +707,19 @@ func (bc *Client) GetMaxBorrowable(asset string, isolatedSymbol string) (MaxBorr
 	return result, fwd, err
 }
 
-func (bc *Client) AllCoinInfo() (AllCoinInfo, error) {
+func (bc *Client) AllCoinInfo() (AllCoinInfo,*FwdData, error) {
 	var result []CoinInfo
 
 	requestURL := fmt.Sprintf("%s/sapi/v1/capital/config/getall", apiBaseURL)
 	req, err := NewRequestBuilder(http.MethodGet, requestURL, nil)
 	if err != nil {
-		return nil, err
+		return nil,nil, err
 	}
 	rr := req.WithHeader(apiKeyHeader, bc.apiKey).
 		SignedRequest(bc.secretKey)
-	_, err = bc.doRequest(rr, &result)
+	fwd, err := bc.doRequest(rr, &result)
 	if err != nil {
-		return nil, err
+		return nil,fwd, err
 	}
-	return result, err
+	return result,fwd, err
 }

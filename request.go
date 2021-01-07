@@ -3,14 +3,13 @@ package binance
 import (
 	"crypto/hmac"
 	"crypto/sha256"
+	"encoding/hex"
+	"fmt"
 	"io"
 	"net/http"
 	"net/url"
 	"strconv"
 	"time"
-
-	ethereum "github.com/ethereum/go-ethereum/common"
-	"github.com/pkg/errors"
 )
 
 type RequestBuilder struct {
@@ -21,7 +20,7 @@ type RequestBuilder struct {
 func NewRequestBuilder(method, url string, body io.ReadCloser) (*RequestBuilder, error) {
 	req, err := http.NewRequest(method, url, body)
 	if err != nil {
-		return nil, errors.Wrap(err, "failed to create request")
+		return nil, fmt.Errorf("failed to create request, %w",err)
 	}
 	return &RequestBuilder{
 		req:    req,
@@ -40,7 +39,7 @@ func (r *RequestBuilder) WithParam(key, value string) *RequestBuilder {
 }
 
 func (r *RequestBuilder) SignedRequest(secret string) *http.Request {
-	r.params.Set("timestamp", strconv.FormatUint(getTimepoint(), 10))
+	r.params.Set("timestamp", strconv.FormatUint(currentMillis(), 10))
 	r.params.Set("recvWindow", "5000")
 	sig := url.Values{}
 	sig.Set("signature", sign(r.params.Encode(), secret))
@@ -58,10 +57,10 @@ func sign(msg string, secret string) string {
 	if _, err := mac.Write([]byte(msg)); err != nil {
 		panic(err) // should never happen
 	}
-	result := ethereum.Bytes2Hex(mac.Sum(nil))
+	result := hex.EncodeToString(mac.Sum(nil))
 	return result
 }
 
-func getTimepoint() uint64 {
+func currentMillis() uint64 {
 	return uint64(time.Now().UnixNano()) / uint64(time.Millisecond)
 }
