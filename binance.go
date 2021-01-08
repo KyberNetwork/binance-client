@@ -1,5 +1,9 @@
 package binance
 
+import (
+	"encoding/json"
+)
+
 // AccountState is balance state of tokens
 type AccountState struct {
 	StatusImpl
@@ -422,4 +426,25 @@ func (a AllCoinInfo) ToMap() map[string]CoinInfo {
 		res[v.Coin] = v
 	}
 	return res
+}
+
+// OrderBook represent orderbook on binance
+type OrderBook struct {
+	Bids           []RateAndQty `json:"bids"`
+	Asks           []RateAndQty `json:"asks"`
+	LatestUpdateID int64        `json:"lastUpdateId"`
+}
+
+// RateAndQty is price item
+type RateAndQty struct {
+	Quantity string `json:"quantity"`
+	Rate     string `json:"rate"`
+}
+// UnmarshalJSON custom unmarshal for binaprice
+func (bp *RateAndQty) UnmarshalJSON(text []byte) error {
+	temp := []interface{}{&bp.Quantity,&bp.Rate}
+	if err := json.Unmarshal(text, &temp); err != nil {
+		return err
+	}
+	return nil
 }

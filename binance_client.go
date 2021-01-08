@@ -723,3 +723,19 @@ func (bc *Client) AllCoinInfo() (AllCoinInfo,*FwdData, error) {
 	}
 	return result,fwd, err
 }
+
+func (bc *Client) GetOrderBook(symbol string,limit string) (OrderBook,*FwdData, error) {
+	var result OrderBook
+
+	requestURL := fmt.Sprintf("%s/api/v3/depth", apiBaseURL)
+	req, err := NewRequestBuilder(http.MethodGet, requestURL, nil)
+	if err != nil {
+		return OrderBook{},nil, err
+	}
+	rr := req.WithParam("symbol",symbol).WithParam("limit",limit).Request()
+	fwd, err := bc.doRequest(rr, &result)
+	if err != nil {
+		return OrderBook{},fwd, err
+	}
+	return result,fwd, err
+}
