@@ -85,11 +85,11 @@ func (bc *Client) createListenKey(apiPath string) (string, error) {
 func (bc *Client) doRequest(req *http.Request, data interface{}) (*FwdData, error) {
 	resp, err := bc.httpClient.Do(req)
 	if err != nil {
-		return nil, fmt.Errorf("failed to execute the request, %w",err)
+		return nil, fmt.Errorf("failed to execute the request, %w", err)
 	}
 	respBody, err := ioutil.ReadAll(resp.Body)
 	if err != nil {
-		return nil, fmt.Errorf("read response failed, %w",err)
+		return nil, fmt.Errorf("read response failed, %w", err)
 	}
 	_ = resp.Body.Close()
 	fwd := &FwdData{
@@ -103,7 +103,7 @@ func (bc *Client) doRequest(req *http.Request, data interface{}) (*FwdData, erro
 			return fwd, nil
 		}
 		if err = json.Unmarshal(respBody, data); err != nil {
-			return fwd, fmt.Errorf( "failed to parse data into struct: %s %w", respBody,err)
+			return fwd, fmt.Errorf("failed to parse data into struct: %s %w", respBody, err)
 		}
 	default:
 		return fwd, fmt.Errorf("%d, %s", resp.StatusCode, string(respBody))
@@ -223,9 +223,16 @@ func (bc *Client) GetAccountTradeHistory(symbol, startTime, endTime string, limi
 	}
 	rr := req.WithHeader(apiKeyHeader, bc.apiKey).
 		WithParam("symbol", symbol).
-		WithParam("startTime", startTime).
-		WithParam("endTime", endTime).
 		WithParam("limit", strconv.FormatInt(limit, 10))
+	if startTime != "" {
+		rr = rr.WithParam("startTime", startTime)
+	}
+	if endTime != "" {
+		rr = rr.WithParam("endTime", endTime)
+	}
+	if limit != 0 {
+		rr = rr.WithParam("limit", strconv.FormatInt(limit, 10))
+	}
 	if fromID != "" {
 		rr = rr.WithParam("fromId", fromID)
 	} else {
@@ -707,35 +714,35 @@ func (bc *Client) GetMaxBorrowable(asset string, isolatedSymbol string) (MaxBorr
 	return result, fwd, err
 }
 
-func (bc *Client) AllCoinInfo() (AllCoinInfo,*FwdData, error) {
+func (bc *Client) AllCoinInfo() (AllCoinInfo, *FwdData, error) {
 	var result []CoinInfo
 
 	requestURL := fmt.Sprintf("%s/sapi/v1/capital/config/getall", apiBaseURL)
 	req, err := NewRequestBuilder(http.MethodGet, requestURL, nil)
 	if err != nil {
-		return nil,nil, err
+		return nil, nil, err
 	}
 	rr := req.WithHeader(apiKeyHeader, bc.apiKey).
 		SignedRequest(bc.secretKey)
 	fwd, err := bc.doRequest(rr, &result)
 	if err != nil {
-		return nil,fwd, err
+		return nil, fwd, err
 	}
-	return result,fwd, err
+	return result, fwd, err
 }
 
-func (bc *Client) GetOrderBook(symbol string,limit string) (OrderBook,*FwdData, error) {
+func (bc *Client) GetOrderBook(symbol string, limit string) (OrderBook, *FwdData, error) {
 	var result OrderBook
 
 	requestURL := fmt.Sprintf("%s/api/v3/depth", apiBaseURL)
 	req, err := NewRequestBuilder(http.MethodGet, requestURL, nil)
 	if err != nil {
-		return OrderBook{},nil, err
+		return OrderBook{}, nil, err
 	}
-	rr := req.WithParam("symbol",symbol).WithParam("limit",limit).Request()
+	rr := req.WithParam("symbol", symbol).WithParam("limit", limit).Request()
 	fwd, err := bc.doRequest(rr, &result)
 	if err != nil {
-		return OrderBook{},fwd, err
+		return OrderBook{}, fwd, err
 	}
-	return result,fwd, err
+	return result, fwd, err
 }
