@@ -132,27 +132,24 @@ type TransferToMasterResponse struct {
 
 // SubAccountResult ...
 type SubAccountResult struct {
-	StatusImpl
 	SubAccounts []struct {
 		Email      string `json:"email"`
-		Status     string `json:"status"`
-		Activated  bool   `json:"activated"`
-		Mobile     string `json:"mobile"`
-		GAuth      bool   `json:"gAuth"`
+		IsFreeze   bool   `json:"isFreeze"`
 		CreateTime int64  `json:"createTime"`
 	} `json:"subAccounts"`
 }
 
 // SubAccountTransferHistoryResult ...
-type SubAccountTransferHistoryResult struct {
-	StatusImpl
-	Transfers []struct {
-		From  string `json:"from"`
-		To    string `json:"to"`
-		Asset string `json:"asset"`
-		Qty   string `json:"qty"`
-		Time  int64  `json:"time"`
-	} `json:"transfers"`
+type SubAccountTransferHistoryResult []SubAccountTransferEntry
+
+type SubAccountTransferEntry struct {
+	From   string `json:"from"`
+	To     string `json:"to"`
+	Asset  string `json:"asset"`
+	Qty    string `json:"qty"`
+	Status string `json:"status"`
+	TranId int64  `json:"tranId"`
+	Time   int64  `json:"time"`
 }
 
 // TransferResult ...
@@ -163,7 +160,6 @@ type TransferResult struct {
 
 // SubAccountAssetBalancesResult ...
 type SubAccountAssetBalancesResult struct {
-	StatusImpl
 	Balances []struct {
 		Asset  string  `json:"asset"`
 		Free   float64 `json:"free"`
@@ -204,37 +200,37 @@ type AccountTradeHistoryList []struct {
 }
 
 // WithdrawalsList ...
-type WithdrawalsList struct {
-	StatusImpl
-	Withdrawals []WithdrawalEntry `json:"withdrawList"`
-}
+type WithdrawalsList []WithdrawalEntry
 
 // WithdrawalEntry object for withdraw from binance
 type WithdrawalEntry struct {
-	ID        string  `json:"id"`
-	Amount    float64 `json:"amount"`
-	Address   string  `json:"address"`
-	Asset     string  `json:"asset"`
-	TxID      string  `json:"txId"`
-	ApplyTime uint64  `json:"applyTime"`
-	Fee       float64 `json:"transactionFee"`
-	Status    int     `json:"status"`
+	ID              string `json:"id"`
+	Address         string `json:"address"`
+	Amount          string `json:"amount"`
+	ApplyTime       string `json:"applyTime"`
+	Coin            string `json:"coin"`
+	WithdrawOrderId string `json:"withdrawOrderId"`
+	Network         string `json:"network"`
+	TransferType    int    `json:"transferType"`
+	Status          int    `json:"status"`
+	TxId            string `json:"txId"`
 }
 
 // DepositsList ...
-type DepositsList struct {
-	StatusImpl
-	Deposits []DepositEntry `json:"depositList"`
-}
+type DepositsList []DepositEntry
 
 // DepositEntry ...
 type DepositEntry struct {
-	InsertTime uint64  `json:"insertTime"`
-	Amount     float64 `json:"amount"`
-	Asset      string  `json:"asset"`
-	Address    string  `json:"address"`
-	TxID       string  `json:"txId"`
-	Status     int     `json:"status"`
+	Amount       string `json:"amount"`
+	Coin         string `json:"coin"`
+	Network      string `json:"network"`
+	Status       int    `json:"status"`
+	Address      string `json:"address"`
+	AddressTag   string `json:"addressTag"`
+	TxId         string `json:"txId"`
+	InsertTime   int64  `json:"insertTime"`
+	TransferType int    `json:"transferType"`
+	ConfirmTimes string `json:"confirmTimes"`
 }
 
 // CancelResult ...
@@ -265,27 +261,25 @@ type BOrder struct {
 
 // WithdrawResult ...
 type WithdrawResult struct {
-	StatusImpl
 	ID string `json:"id"`
 }
 
 // BDepositAddress ...
 type BDepositAddress struct {
-	StatusImpl
 	Address    string `json:"address"`
 	AddressTag string `json:"addressTag"`
-	Asset      string `json:"asset"`
+	Coin       string `json:"coin"`
+	URL        string `json:"url"`
 }
 
 // AssetDetailResult ...
 type AssetDetailResult struct {
-	StatusImpl
 	AssetDetail map[string]AssetDetail `json:"assetDetail"`
 }
 
 // AssetDetail ...
 type AssetDetail struct {
-	MinWithdrawAmount float64 `json:"minWithdrawAmount"`
+	MinWithdrawAmount string  `json:"minWithdrawAmount"`
 	DepositStatus     bool    `json:"depositStatus"`
 	WithdrawFee       float64 `json:"withdrawFee"`
 	WithdrawStatus    bool    `json:"withdrawStatus"`
@@ -440,11 +434,20 @@ type RateAndQty struct {
 	Quantity string `json:"quantity"`
 	Rate     string `json:"rate"`
 }
+
 // UnmarshalJSON custom unmarshal for binaprice
 func (bp *RateAndQty) UnmarshalJSON(text []byte) error {
-	temp := []interface{}{&bp.Quantity,&bp.Rate}
+	temp := []interface{}{&bp.Quantity, &bp.Rate}
 	if err := json.Unmarshal(text, &temp); err != nil {
 		return err
 	}
 	return nil
+}
+
+type TickerEntry struct {
+	Symbol   string `json:"symbol"`
+	BidPrice string `json:"bidPrice"`
+	BidQty   string `json:"bidQty"`
+	AskPrice string `json:"askPrice"`
+	AskQty   string `json:"askQty"`
 }

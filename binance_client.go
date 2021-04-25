@@ -244,49 +244,59 @@ func (bc *Client) GetAccountTradeHistory(symbol, startTime, endTime string, limi
 }
 
 // WithdrawHistory query recent withdraw list
-func (bc *Client) WithdrawHistory(startTime, endTime, status, asset string) (WithdrawalsList, *FwdData, error) {
+func (bc *Client) WithdrawHistory(coin, startTime, endTime, status string) (WithdrawalsList, *FwdData, error) {
 	result := WithdrawalsList{}
-	requestURL := fmt.Sprintf("%s/wapi/v3/withdrawHistory.html", apiBaseURL)
+	requestURL := fmt.Sprintf("%s/sapi/v1/capital/withdraw/history", apiBaseURL)
 	req, err := NewRequestBuilder(http.MethodGet, requestURL, nil)
 	if err != nil {
 		return WithdrawalsList{}, nil, err
 	}
-	rr := req.WithHeader(apiKeyHeader, bc.apiKey).
-		WithParam("startTime", startTime).
-		WithParam("endTime", endTime).
-		WithParam("status", status).
-		WithParam("asset", asset).
-		SignedRequest(bc.secretKey)
-	fwd, err := bc.doRequest(rr, &result)
+	rr := req.WithHeader(apiKeyHeader, bc.apiKey)
+	if coin != "" {
+		rr = rr.WithParam("coin", coin)
+	}
+	if status != "" {
+		rr = rr.WithParam("status", status)
+	}
+	if startTime != "" {
+		rr = rr.WithParam("startTime", startTime)
+	}
+	if endTime != "" {
+		rr = rr.WithParam("endTime", endTime)
+	}
+	rq := rr.SignedRequest(bc.secretKey)
+	fwd, err := bc.doRequest(rq, &result)
 	if err != nil {
 		return result, fwd, err
-	}
-	if !result.Success && fwd != nil {
-		return result, fwd, fmt.Errorf("binance failure: %s", string(fwd.Data))
 	}
 	return result, fwd, err
 }
 
 // DepositHistory query recent withdraw list
-func (bc *Client) DepositHistory(asset, status string, startTime, endTime string) (DepositsList, *FwdData, error) {
+func (bc *Client) DepositHistory(coin, status string, startTime, endTime string) (DepositsList, *FwdData, error) {
 	result := DepositsList{}
-	requestURL := fmt.Sprintf("%s/wapi/v3/depositHistory.html", apiBaseURL)
+	requestURL := fmt.Sprintf("%s/sapi/v1/capital/deposit/hisrec", apiBaseURL)
 	req, err := NewRequestBuilder(http.MethodGet, requestURL, nil)
 	if err != nil {
 		return DepositsList{}, nil, err
 	}
-	rr := req.WithHeader(apiKeyHeader, bc.apiKey).
-		WithParam("asset", asset).
-		WithParam("status", status).
-		WithParam("startTime", startTime).
-		WithParam("endTime", endTime).
-		SignedRequest(bc.secretKey)
-	fwd, err := bc.doRequest(rr, &result)
+	rr := req.WithHeader(apiKeyHeader, bc.apiKey)
+	if coin != "" {
+		rr = rr.WithParam("coin", coin)
+	}
+	if startTime != "" {
+		rr = rr.WithParam("startTime", startTime)
+	}
+	if endTime != "" {
+		rr = rr.WithParam("endTime", endTime)
+	}
+	if status != "" {
+		rr = rr.WithParam("status", status)
+	}
+	rq := rr.SignedRequest(bc.secretKey)
+	fwd, err := bc.doRequest(rq, &result)
 	if err != nil {
 		return result, fwd, err
-	}
-	if !result.Success && fwd != nil {
-		return result, fwd, fmt.Errorf("binance failure: %s", string(fwd.Data))
 	}
 	return result, fwd, err
 }
@@ -323,15 +333,17 @@ func (bc *Client) CancelAllOrder(symbol string) ([]BOrder, *FwdData, error) {
 }
 
 // Withdraw ...
-func (bc *Client) Withdraw(symbol, amount, address, name string) (string, *FwdData, error) {
+func (bc *Client) Withdraw(coin, amount, address, network, name, orderID string) (string, *FwdData, error) {
 	var result WithdrawResult
-	requestURL := fmt.Sprintf("%s/wapi/v3/withdraw.html", apiBaseURL)
+	requestURL := fmt.Sprintf("%s/sapi/v1/capital/withdraw/apply", apiBaseURL)
 	req, err := NewRequestBuilder(http.MethodPost, requestURL, nil)
 	if err != nil {
 		return "", nil, err
 	}
 	rr := req.WithHeader(apiKeyHeader, bc.apiKey).
-		WithParam("asset", symbol).
+		WithParam("coin", coin).
+		WithParam("withdrawOrderId", orderID).
+		WithParam("network", network).
 		WithParam("address", address).
 		WithParam("name", name).
 		WithParam("amount", amount).
@@ -339,9 +351,6 @@ func (bc *Client) Withdraw(symbol, amount, address, name string) (string, *FwdDa
 	fwd, err := bc.doRequest(rr, &result)
 	if err != nil {
 		return "", fwd, err
-	}
-	if !result.Success && fwd != nil {
-		return "", fwd, fmt.Errorf("binance failure: %s", string(fwd.Data))
 	}
 	return result.ID, fwd, err
 }
@@ -368,60 +377,63 @@ func (bc *Client) TransferToMainAccount(asset, amount string) (int64, *FwdData, 
 }
 
 // SubAccountList list sub account detail
-func (bc *Client) SubAccountList(email, status string) (SubAccountResult, *FwdData, error) {
+func (bc *Client) SubAccountList(email string, isFreeze string) (SubAccountResult, *FwdData, error) {
 	var (
 		result SubAccountResult
 	)
-	requestURL := fmt.Sprintf("%s/wapi/v3/sub-account/list.html", apiBaseURL)
+	requestURL := fmt.Sprintf("%s/sapi/v1/sub-account/list", apiBaseURL)
 	req, err := NewRequestBuilder(http.MethodGet, requestURL, nil)
 	if err != nil {
 		return result, nil, err
 	}
-	rr := req.WithHeader(apiKeyHeader, bc.apiKey).
-		WithParam("email", email).
-		WithParam("status", status).
-		SignedRequest(bc.secretKey)
-	fwd, err := bc.doRequest(rr, &result)
+	rr := req.WithHeader(apiKeyHeader, bc.apiKey)
+	if email != "" {
+		rr = rr.WithParam("email", email)
+	}
+	if isFreeze != "" {
+		rr = rr.WithParam("isFreeze", isFreeze)
+	}
+	rq := rr.SignedRequest(bc.secretKey)
+	fwd, err := bc.doRequest(rq, &result)
 	if err != nil {
 		return result, fwd, err
-	}
-	if !result.Success && fwd != nil {
-		return result, fwd, fmt.Errorf("binance failure: %s", string(fwd.Data))
 	}
 	return result, fwd, err
 }
 
 // SubAccountTransferHistory list transfer to sub account history
-func (bc *Client) SubAccountTransferHistory(email string, startTime, endTime string) (SubAccountTransferHistoryResult, *FwdData, error) {
+func (bc *Client) SubAccountTransferHistory(fromEmail, toEmail string, startTime, endTime string) (SubAccountTransferHistoryResult, *FwdData, error) {
 	var (
 		result SubAccountTransferHistoryResult
 	)
-	requestURL := fmt.Sprintf("%s/wapi/v3/sub-account/transfer/history.html", apiBaseURL)
+	requestURL := fmt.Sprintf("%s/sapi/v1/sub-account/sub/transfer/history", apiBaseURL)
 	req, err := NewRequestBuilder(http.MethodGet, requestURL, nil)
 	if err != nil {
 		return result, nil, err
 	}
 	rr := req.WithHeader(apiKeyHeader, bc.apiKey).
-		WithParam("email", email).
 		WithParam("startTime", startTime).
 		WithParam("endTime", endTime)
+	if fromEmail != "" {
+		rr = rr.WithParam("fromEmail", fromEmail)
+	}
+	if toEmail != "" {
+		rr = rr.WithParam("toEmail", toEmail)
+	}
 	rb := rr.SignedRequest(bc.secretKey)
 	fwd, err := bc.doRequest(rb, &result)
 	if err != nil {
 		return result, fwd, err
 	}
-	if !result.Success && fwd != nil {
-		return result, fwd, fmt.Errorf("binance failure: %s", string(fwd.Data))
-	}
 	return result, fwd, err
 }
 
 // AssetTransfer transfer between main <-> sub and sub<->sub
-func (bc *Client) AssetTransfer(fromEmail, toEmail, asset, amount string) (TransferResult, *FwdData, error) {
+func (bc *Client) AssetTransfer(fromEmail, fromAccType, toEmail, toAccountType, asset, amount string) (TransferResult, *FwdData, error) {
 	var (
 		result TransferResult
 	)
-	requestURL := fmt.Sprintf("%s/wapi/v3/sub-account/transfer.html", apiBaseURL)
+	requestURL := fmt.Sprintf("%s/sapi/v1/sub-account/universalTransfer", apiBaseURL)
 	req, err := NewRequestBuilder(http.MethodPost, requestURL, nil)
 	if err != nil {
 		return result, nil, err
@@ -431,6 +443,8 @@ func (bc *Client) AssetTransfer(fromEmail, toEmail, asset, amount string) (Trans
 		WithParam("toEmail", toEmail).
 		WithParam("asset", asset).
 		WithParam("amount", amount).
+		WithParam("fromAccountType", fromAccType).
+		WithParam("toAccountType", toAccountType).
 		SignedRequest(bc.secretKey)
 	fwd, err := bc.doRequest(rr, &result)
 	if err != nil {
@@ -447,7 +461,7 @@ func (bc *Client) SubAccountAssetBalances(email string) (SubAccountAssetBalances
 	var (
 		result SubAccountAssetBalancesResult
 	)
-	requestURL := fmt.Sprintf("%s/wapi/v3/sub-account/assets.html", apiBaseURL)
+	requestURL := fmt.Sprintf("%s/sapi/v3/sub-account/assets", apiBaseURL)
 	req, err := NewRequestBuilder(http.MethodGet, requestURL, nil)
 	if err != nil {
 		return result, nil, err
@@ -459,29 +473,26 @@ func (bc *Client) SubAccountAssetBalances(email string) (SubAccountAssetBalances
 	if err != nil {
 		return result, fwd, err
 	}
-	if !result.Success && fwd != nil {
-		return result, fwd, fmt.Errorf("binance failure: %s", string(fwd.Data))
-	}
 	return result, fwd, err
 }
 
 // GetDepositAddress ...
-func (bc *Client) GetDepositAddress(asset string) (BDepositAddress, *FwdData, error) {
+func (bc *Client) GetDepositAddress(asset, network string) (BDepositAddress, *FwdData, error) {
 	var result BDepositAddress
-	requestURL := fmt.Sprintf("%s/wapi/v3/depositAddress.html", apiBaseURL)
+	requestURL := fmt.Sprintf("%s/sapi/v1/capital/deposit/address", apiBaseURL)
 	req, err := NewRequestBuilder(http.MethodGet, requestURL, nil)
 	if err != nil {
 		return result, nil, err
 	}
-	rr := req.WithHeader(apiKeyHeader, bc.apiKey).
-		WithParam("asset", asset).
-		SignedRequest(bc.secretKey)
+	rq := req.WithHeader(apiKeyHeader, bc.apiKey).
+		WithParam("coin", asset)
+	if network != "" {
+		rq = rq.WithParam("network", network)
+	}
+	rr := rq.SignedRequest(bc.secretKey)
 	fwd, err := bc.doRequest(rr, &result)
 	if err != nil {
 		return result, fwd, err
-	}
-	if !result.Success && fwd != nil {
-		return result, fwd, fmt.Errorf("binance failure: %s", string(fwd.Data))
 	}
 	return result, fwd, err
 }
@@ -489,7 +500,7 @@ func (bc *Client) GetDepositAddress(asset string) (BDepositAddress, *FwdData, er
 // GetAllAssetDetail ...
 func (bc *Client) GetAllAssetDetail() (AssetDetailResult, *FwdData, error) {
 	var result AssetDetailResult
-	requestURL := fmt.Sprintf("%s/wapi/v3/assetDetail.html", apiBaseURL)
+	requestURL := fmt.Sprintf("%s/sapi/v1/asset/assetDetail", apiBaseURL)
 	req, err := NewRequestBuilder(http.MethodGet, requestURL, nil)
 	if err != nil {
 		return result, nil, err
@@ -499,9 +510,6 @@ func (bc *Client) GetAllAssetDetail() (AssetDetailResult, *FwdData, error) {
 	fwd, err := bc.doRequest(rr, &result)
 	if err != nil {
 		return result, fwd, err
-	}
-	if !result.Success && fwd != nil {
-		return result, fwd, fmt.Errorf("binance failure: %s", string(fwd.Data))
 	}
 	return result, fwd, err
 }
@@ -743,6 +751,21 @@ func (bc *Client) GetOrderBook(symbol string, limit string) (OrderBook, *FwdData
 	fwd, err := bc.doRequest(rr, &result)
 	if err != nil {
 		return OrderBook{}, fwd, err
+	}
+	return result, fwd, err
+}
+
+func (bc *Client) TickerData() ([]TickerEntry, *FwdData, error) {
+	var result []TickerEntry
+	requestURL := fmt.Sprintf("%s/api/v3/ticker/bookTicker", apiBaseURL)
+	req, err := NewRequestBuilder(http.MethodGet, requestURL, nil)
+	if err != nil {
+		return result, nil, err
+	}
+	rr := req.Request()
+	fwd, err := bc.doRequest(rr, &result)
+	if err != nil {
+		return result, fwd, err
 	}
 	return result, fwd, err
 }
