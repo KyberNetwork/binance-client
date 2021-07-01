@@ -473,40 +473,31 @@ type TickerEntry struct {
 	AskQty   string `json:"askQty"`
 }
 
+type IsolatedMarginAsset struct {
+	Asset         string `json:"asset"`
+	BorrowEnabled bool   `json:"borrowEnabled"`
+	Borrowed      string `json:"borrowed"`
+	Free          string `json:"free"`
+	Interest      string `json:"interest"`
+	Locked        string `json:"locked"`
+	NetAsset      string `json:"netAsset"`
+	NetAssetOfBtc string `json:"netAssetOfBtc"`
+	RepayEnabled  bool   `json:"repayEnabled"`
+	TotalAsset    string `json:"totalAsset"`
+}
+
 type IsolatedMarginAssetInfo struct {
-	BaseAsset struct {
-		Asset         string `json:"asset"`
-		BorrowEnabled bool   `json:"borrowEnabled"`
-		Borrowed      string `json:"borrowed"`
-		Free          string `json:"free"`
-		Interest      string `json:"interest"`
-		Locked        string `json:"locked"`
-		NetAsset      string `json:"netAsset"`
-		NetAssetOfBtc string `json:"netAssetOfBtc"`
-		RepayEnabled  bool   `json:"repayEnabled"`
-		TotalAsset    string `json:"totalAsset"`
-	} `json:"baseAsset"`
-	QuoteAsset struct {
-		Asset         string `json:"asset"`
-		BorrowEnabled bool   `json:"borrowEnabled"`
-		Borrowed      string `json:"borrowed"`
-		Free          string `json:"free"`
-		Interest      string `json:"interest"`
-		Locked        string `json:"locked"`
-		NetAsset      string `json:"netAsset"`
-		NetAssetOfBtc string `json:"netAssetOfBtc"`
-		RepayEnabled  bool   `json:"repayEnabled"`
-		TotalAsset    string `json:"totalAsset"`
-	} `json:"quoteAsset"`
-	Symbol            string `json:"symbol"`
-	IsolatedCreated   bool   `json:"isolatedCreated"`
-	MarginLevel       string `json:"marginLevel"`
-	MarginLevelStatus string `json:"marginLevelStatus"`
-	MarginRatio       string `json:"marginRatio"`
-	IndexPrice        string `json:"indexPrice"`
-	LiquidatePrice    string `json:"liquidatePrice"`
-	LiquidateRate     string `json:"liquidateRate"`
-	TradeEnabled      bool   `json:"tradeEnabled"`
+	BaseAsset         IsolatedMarginAsset `json:"baseAsset"`
+	QuoteAsset        IsolatedMarginAsset `json:"quoteAsset"`
+	Symbol            string              `json:"symbol"`
+	IsolatedCreated   bool                `json:"isolatedCreated"`
+	MarginLevel       string              `json:"marginLevel"`
+	MarginLevelStatus string              `json:"marginLevelStatus"`
+	MarginRatio       string              `json:"marginRatio"`
+	IndexPrice        string              `json:"indexPrice"`
+	LiquidatePrice    string              `json:"liquidatePrice"`
+	LiquidateRate     string              `json:"liquidateRate"`
+	TradeEnabled      bool                `json:"tradeEnabled"`
 }
 
 type IsolatedMarginAccountDetails struct {

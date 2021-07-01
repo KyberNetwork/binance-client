@@ -20,7 +20,7 @@ type RequestBuilder struct {
 func NewRequestBuilder(method, url string, body io.ReadCloser) (*RequestBuilder, error) {
 	req, err := http.NewRequest(method, url, body)
 	if err != nil {
-		return nil, fmt.Errorf("failed to create request, %w",err)
+		return nil, fmt.Errorf("failed to create request, %w", err)
 	}
 	return &RequestBuilder{
 		req:    req,
@@ -52,7 +52,7 @@ func (r *RequestBuilder) Request() *http.Request {
 	return r.req
 }
 
-func sign(msg string, secret string) string {
+func sign(msg, secret string) string {
 	mac := hmac.New(sha256.New, []byte(secret))
 	if _, err := mac.Write([]byte(msg)); err != nil {
 		panic(err) // should never happen

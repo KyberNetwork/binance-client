@@ -173,7 +173,7 @@ func (bc *Client) WithdrawHistory(coin, startTime, endTime, status string) (With
 }
 
 // DepositHistory query recent withdraw list
-func (bc *Client) DepositHistory(coin, status string, startTime, endTime string) (DepositsList, *FwdData, error) {
+func (bc *Client) DepositHistory(coin, status, startTime, endTime string) (DepositsList, *FwdData, error) {
 	result := DepositsList{}
 	requestURL := fmt.Sprintf("%s/sapi/v1/capital/deposit/hisrec", apiBaseURL)
 	req, err := NewRequestBuilder(http.MethodGet, requestURL, nil)
@@ -277,7 +277,7 @@ func (bc *Client) TransferToMainAccount(asset, amount string) (int64, *FwdData, 
 }
 
 // SubAccountList list sub account detail
-func (bc *Client) SubAccountList(email string, isFreeze string) (SubAccountResult, *FwdData, error) {
+func (bc *Client) SubAccountList(email, isFreeze string) (SubAccountResult, *FwdData, error) {
 	var (
 		result SubAccountResult
 	)
@@ -302,7 +302,7 @@ func (bc *Client) SubAccountList(email string, isFreeze string) (SubAccountResul
 }
 
 // SubAccountTransferHistory list transfer to sub account history
-func (bc *Client) SubAccountTransferHistory(fromEmail, toEmail string, startTime, endTime string) (SubAccountTransferHistoryResult, *FwdData, error) {
+func (bc *Client) SubAccountTransferHistory(fromEmail, toEmail, startTime, endTime string) (SubAccountTransferHistoryResult, *FwdData, error) {
 	var (
 		result SubAccountTransferHistoryResult
 	)
@@ -459,7 +459,7 @@ func (bc *Client) AllCoinInfo() (AllCoinInfo, *FwdData, error) {
 	return result, fwd, err
 }
 
-func (bc *Client) GetOrderBook(symbol string, limit string) (OrderBook, *FwdData, error) {
+func (bc *Client) GetOrderBook(symbol, limit string) (OrderBook, *FwdData, error) {
 	var result OrderBook
 
 	requestURL := fmt.Sprintf("%s/api/v3/depth", apiBaseURL)

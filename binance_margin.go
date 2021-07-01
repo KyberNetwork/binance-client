@@ -35,7 +35,7 @@ type marginCommonResult struct {
 	TranID uint64 `json:"tranId"`
 }
 
-func (bc *Client) CrossMarginTransfer(asset string, amount string, spotToMargin bool) (uint64, *FwdData, error) {
+func (bc *Client) CrossMarginTransfer(asset, amount string, spotToMargin bool) (uint64, *FwdData, error) {
 	transType := ""
 	if spotToMargin {
 		transType = "1"
@@ -63,7 +63,7 @@ func (bc *Client) CrossMarginTransfer(asset string, amount string, spotToMargin 
 	return result.TranID, fwd, err
 }
 
-func (bc *Client) CrossMarginBorrow(asset string, isIsolated bool, symbol string, amount string) (uint64, *FwdData, error) {
+func (bc *Client) CrossMarginBorrow(asset, symbol, amount string, isIsolated bool) (uint64, *FwdData, error) {
 	isISO := ""
 	if isIsolated {
 		isISO = "TRUE"
@@ -93,7 +93,7 @@ func (bc *Client) CrossMarginBorrow(asset string, isIsolated bool, symbol string
 	return result.TranID, fwd, err
 }
 
-func (bc *Client) CrossMarginRepay(asset string, isIsolated bool, symbol string, amount string) (uint64, *FwdData, error) {
+func (bc *Client) CrossMarginRepay(asset, symbol, amount string, isIsolated bool) (uint64, *FwdData, error) {
 	isISO := ""
 	if isIsolated {
 		isISO = "TRUE"
@@ -191,7 +191,7 @@ func (bc *Client) GetCrossMarginAccountDetails() (CrossMarginAccountDetails, *Fw
 	return result, fwd, err
 }
 
-func (bc *Client) GetMaxBorrowable(asset string, isolatedSymbol string) (MaxBorrowableResult, *FwdData, error) {
+func (bc *Client) GetMaxBorrowable(asset, isolatedSymbol string) (MaxBorrowableResult, *FwdData, error) {
 	var (
 		result MaxBorrowableResult
 	)
