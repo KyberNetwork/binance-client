@@ -442,6 +442,7 @@ func (bc *Client) GetServerTime() (int64, *FwdData, error) {
 	return result.ServerTime, fwd, err
 }
 
+// AllCoinInfo return all coin info
 func (bc *Client) AllCoinInfo() (AllCoinInfo, *FwdData, error) {
 	var result []CoinInfo
 
@@ -459,6 +460,7 @@ func (bc *Client) AllCoinInfo() (AllCoinInfo, *FwdData, error) {
 	return result, fwd, err
 }
 
+// GetOrderBook return order book of a symbol
 func (bc *Client) GetOrderBook(symbol, limit string) (OrderBook, *FwdData, error) {
 	var result OrderBook
 
@@ -475,6 +477,7 @@ func (bc *Client) GetOrderBook(symbol, limit string) (OrderBook, *FwdData, error
 	return result, fwd, err
 }
 
+// TickerData return ticker data
 func (bc *Client) TickerData() ([]TickerEntry, *FwdData, error) {
 	var result []TickerEntry
 	requestURL := fmt.Sprintf("%s/api/v3/ticker/bookTicker", apiBaseURL)

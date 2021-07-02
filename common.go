@@ -465,6 +465,7 @@ func (bp *RateAndQty) UnmarshalJSON(text []byte) error {
 	return nil
 }
 
+// TickerEntry ...
 type TickerEntry struct {
 	Symbol   string `json:"symbol"`
 	BidPrice string `json:"bidPrice"`
@@ -473,6 +474,7 @@ type TickerEntry struct {
 	AskQty   string `json:"askQty"`
 }
 
+// IsolatedMarginAsset ...
 type IsolatedMarginAsset struct {
 	Asset         string `json:"asset"`
 	BorrowEnabled bool   `json:"borrowEnabled"`
@@ -486,6 +488,7 @@ type IsolatedMarginAsset struct {
 	TotalAsset    string `json:"totalAsset"`
 }
 
+// IsolatedMarginAssetInfo ...
 type IsolatedMarginAssetInfo struct {
 	BaseAsset         IsolatedMarginAsset `json:"baseAsset"`
 	QuoteAsset        IsolatedMarginAsset `json:"quoteAsset"`
@@ -500,6 +503,7 @@ type IsolatedMarginAssetInfo struct {
 	TradeEnabled      bool                `json:"tradeEnabled"`
 }
 
+// IsolatedMarginAccountDetails ...
 type IsolatedMarginAccountDetails struct {
 	Assets              []IsolatedMarginAssetInfo `json:"assets"`
 	TotalAssetOfBtc     string                    `json:"totalAssetOfBtc"`

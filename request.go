@@ -12,11 +12,13 @@ import (
 	"time"
 )
 
+// RequestBuilder ...
 type RequestBuilder struct {
 	req    *http.Request
 	params url.Values
 }
 
+// NewRequestBuilder return new RequestBuilder instance
 func NewRequestBuilder(method, url string, body io.ReadCloser) (*RequestBuilder, error) {
 	req, err := http.NewRequest(method, url, body)
 	if err != nil {
@@ -28,16 +30,19 @@ func NewRequestBuilder(method, url string, body io.ReadCloser) (*RequestBuilder,
 	}, nil
 }
 
+// WithHeader add new header
 func (r *RequestBuilder) WithHeader(key, value string) *RequestBuilder {
 	r.req.Header.Set(key, value)
 	return r
 }
 
+// WithParam add new param
 func (r *RequestBuilder) WithParam(key, value string) *RequestBuilder {
 	r.params.Set(key, value)
 	return r
 }
 
+// SignedRequest sign request with secret key
 func (r *RequestBuilder) SignedRequest(secret string) *http.Request {
 	r.params.Set("timestamp", strconv.FormatUint(currentMillis(), 10))
 	r.params.Set("recvWindow", "5000")
@@ -47,6 +52,7 @@ func (r *RequestBuilder) SignedRequest(secret string) *http.Request {
 	return r.req
 }
 
+// Request return raw http request
 func (r *RequestBuilder) Request() *http.Request {
 	r.req.URL.RawQuery = r.params.Encode()
 	return r.req

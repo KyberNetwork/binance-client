@@ -35,12 +35,11 @@ type marginCommonResult struct {
 	TranID uint64 `json:"tranId"`
 }
 
-func (bc *Client) CrossMarginTransfer(asset, amount string, spotToMargin bool) (uint64, *FwdData, error) {
-	transType := ""
+// TransferCrossMargin transfer between spot account and cross margin account.
+func (bc *Client) TransferCrossMargin(asset, amount string, spotToMargin bool) (uint64, *FwdData, error) {
+	transType := "2"
 	if spotToMargin {
 		transType = "1"
-	} else {
-		transType = "2"
 	}
 	var (
 		result marginCommonResult
@@ -63,13 +62,8 @@ func (bc *Client) CrossMarginTransfer(asset, amount string, spotToMargin bool) (
 	return result.TranID, fwd, err
 }
 
-func (bc *Client) CrossMarginBorrow(asset, symbol, amount string, isIsolated bool) (uint64, *FwdData, error) {
-	isISO := ""
-	if isIsolated {
-		isISO = "TRUE"
-	} else {
-		isISO = "FALSE"
-	}
+// Borrow borrow margin
+func (bc *Client) Borrow(asset, symbol, amount string, isIsolated bool) (uint64, *FwdData, error) {
 	var (
 		result marginCommonResult
 	)
@@ -82,7 +76,7 @@ func (bc *Client) CrossMarginBorrow(asset, symbol, amount string, isIsolated boo
 		WithParam("asset", asset).
 		WithParam("amount", amount)
 	if isIsolated {
-		rr = rr.WithParam("isIsolated", isISO).
+		rr = rr.WithParam("isIsolated", "TRUE").
 			WithParam("symbol", symbol)
 	}
 	sr := rr.SignedRequest(bc.secretKey)
@@ -93,13 +87,8 @@ func (bc *Client) CrossMarginBorrow(asset, symbol, amount string, isIsolated boo
 	return result.TranID, fwd, err
 }
 
-func (bc *Client) CrossMarginRepay(asset, symbol, amount string, isIsolated bool) (uint64, *FwdData, error) {
-	isISO := ""
-	if isIsolated {
-		isISO = "TRUE"
-	} else {
-		isISO = "FALSE"
-	}
+// Repay repay margin
+func (bc *Client) Repay(asset, symbol, amount string, isIsolated bool) (uint64, *FwdData, error) {
 	var (
 		result marginCommonResult
 	)
@@ -112,7 +101,7 @@ func (bc *Client) CrossMarginRepay(asset, symbol, amount string, isIsolated bool
 		WithParam("asset", asset).
 		WithParam("amount", amount)
 	if isIsolated {
-		rr = rr.WithParam("isIsolated", isISO).
+		rr = rr.WithParam("isIsolated", "TRUE").
 			WithParam("symbol", symbol)
 	}
 	sr := rr.SignedRequest(bc.secretKey)
@@ -123,6 +112,7 @@ func (bc *Client) CrossMarginRepay(asset, symbol, amount string, isIsolated bool
 	return result.TranID, fwd, err
 }
 
+// GetMarginAsset return asset info
 func (bc *Client) GetMarginAsset(asset string) (MarginAsset, *FwdData, error) {
 	var (
 		result MarginAsset
@@ -140,6 +130,7 @@ func (bc *Client) GetMarginAsset(asset string) (MarginAsset, *FwdData, error) {
 	return result, fwd, err
 }
 
+// GetMarginPair return pair info
 func (bc *Client) GetMarginPair(symbol string) (MarginAsset, *FwdData, error) {
 	var (
 		result MarginAsset
@@ -157,7 +148,8 @@ func (bc *Client) GetMarginPair(symbol string) (MarginAsset, *FwdData, error) {
 	return result, fwd, err
 }
 
-func (bc *Client) GetAllCrossMarginAssets() ([]MarginAsset, *FwdData, error) {
+// GetAllMarginAssets return all margin assets
+func (bc *Client) GetAllMarginAssets() ([]MarginAsset, *FwdData, error) {
 	var (
 		result []MarginAsset
 	)
@@ -174,6 +166,7 @@ func (bc *Client) GetAllCrossMarginAssets() ([]MarginAsset, *FwdData, error) {
 	return result, fwd, err
 }
 
+// GetCrossMarginAccountDetails return margin account details
 func (bc *Client) GetCrossMarginAccountDetails() (CrossMarginAccountDetails, *FwdData, error) {
 	var (
 		result CrossMarginAccountDetails
@@ -191,6 +184,7 @@ func (bc *Client) GetCrossMarginAccountDetails() (CrossMarginAccountDetails, *Fw
 	return result, fwd, err
 }
 
+// GetMaxBorrowable return max borrowable
 func (bc *Client) GetMaxBorrowable(asset, isolatedSymbol string) (MaxBorrowableResult, *FwdData, error) {
 	var (
 		result MaxBorrowableResult
@@ -211,7 +205,8 @@ func (bc *Client) GetMaxBorrowable(asset, isolatedSymbol string) (MaxBorrowableR
 	return result, fwd, err
 }
 
-func (bc *Client) IsolatedMarginTransfer(asset, symbol, amount string, transFrom, transferTo WalletType) (uint64, *FwdData, error) {
+// TransferIsolatedMargin transfer between spot account and isolated margin account.
+func (bc *Client) TransferIsolatedMargin(asset, symbol, amount string, transFrom, transferTo WalletType) (uint64, *FwdData, error) {
 	var (
 		result marginCommonResult
 	)
@@ -234,6 +229,7 @@ func (bc *Client) IsolatedMarginTransfer(asset, symbol, amount string, transFrom
 	return result.TranID, fwd, err
 }
 
+// GetIsolatedMarginAccountDetails return isolated account details
 func (bc *Client) GetIsolatedMarginAccountDetails(symbols []string) (IsolatedMarginAccountDetails, *FwdData, error) {
 	var (
 		result IsolatedMarginAccountDetails
