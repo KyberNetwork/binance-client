@@ -1,8 +1,29 @@
 package binance
 
-import (
-	"encoding/json"
+import "encoding/json"
+
+const (
+	apiBaseURL   = "https://api.binance.com" // for both spot and margin
+	apiKeyHeader = "X-MBX-APIKEY"
+
+	WalletSpot           = "SPOT"
+	WalletIsolatedMargin = "ISOLATED_MARGIN"
 )
+
+//go:generate stringer -type=WalletType -linecomment
+type WalletType int
+
+const (
+	SpotWallet           WalletType = iota + 1 // SPOT
+	IsolatedMarginWallet                       // ISOLATED_MARGIN
+)
+
+// FwdData contain data we forward to client
+type FwdData struct {
+	Status      int
+	ContentType string
+	Data        []byte
+}
 
 // AccountState is balance state of tokens
 type AccountState struct {
@@ -444,10 +465,48 @@ func (bp *RateAndQty) UnmarshalJSON(text []byte) error {
 	return nil
 }
 
+// TickerEntry ...
 type TickerEntry struct {
 	Symbol   string `json:"symbol"`
 	BidPrice string `json:"bidPrice"`
 	BidQty   string `json:"bidQty"`
 	AskPrice string `json:"askPrice"`
 	AskQty   string `json:"askQty"`
+}
+
+// IsolatedMarginAsset ...
+type IsolatedMarginAsset struct {
+	Asset         string `json:"asset"`
+	BorrowEnabled bool   `json:"borrowEnabled"`
+	Borrowed      string `json:"borrowed"`
+	Free          string `json:"free"`
+	Interest      string `json:"interest"`
+	Locked        string `json:"locked"`
+	NetAsset      string `json:"netAsset"`
+	NetAssetOfBtc string `json:"netAssetOfBtc"`
+	RepayEnabled  bool   `json:"repayEnabled"`
+	TotalAsset    string `json:"totalAsset"`
+}
+
+// IsolatedMarginAssetInfo ...
+type IsolatedMarginAssetInfo struct {
+	BaseAsset         IsolatedMarginAsset `json:"baseAsset"`
+	QuoteAsset        IsolatedMarginAsset `json:"quoteAsset"`
+	Symbol            string              `json:"symbol"`
+	IsolatedCreated   bool                `json:"isolatedCreated"`
+	MarginLevel       string              `json:"marginLevel"`
+	MarginLevelStatus string              `json:"marginLevelStatus"`
+	MarginRatio       string              `json:"marginRatio"`
+	IndexPrice        string              `json:"indexPrice"`
+	LiquidatePrice    string              `json:"liquidatePrice"`
+	LiquidateRate     string              `json:"liquidateRate"`
+	TradeEnabled      bool                `json:"tradeEnabled"`
+}
+
+// IsolatedMarginAccountDetails ...
+type IsolatedMarginAccountDetails struct {
+	Assets              []IsolatedMarginAssetInfo `json:"assets"`
+	TotalAssetOfBtc     string                    `json:"totalAssetOfBtc"`
+	TotalLiabilityOfBtc string                    `json:"totalLiabilityOfBtc"`
+	TotalNetAssetOfBtc  string                    `json:"totalNetAssetOfBtc"`
 }
