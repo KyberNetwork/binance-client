@@ -44,7 +44,7 @@ func (bc *Client) TransferCrossMargin(asset, amount string, spotToMargin bool) (
 	var (
 		result marginCommonResult
 	)
-	requestURL := fmt.Sprintf("%s/sapi/v1/margin/transfer", apiBaseURL)
+	requestURL := fmt.Sprintf("%s/sapi/v1/margin/transfer", bc.apiBaseURL)
 	req, err := NewRequestBuilder(http.MethodPost, requestURL, nil)
 	if err != nil {
 		return 0, nil, err
@@ -67,7 +67,7 @@ func (bc *Client) Borrow(asset, symbol, amount string, isIsolated bool) (uint64,
 	var (
 		result marginCommonResult
 	)
-	requestURL := fmt.Sprintf("%s/sapi/v1/margin/loan", apiBaseURL)
+	requestURL := fmt.Sprintf("%s/sapi/v1/margin/loan", bc.apiBaseURL)
 	req, err := NewRequestBuilder(http.MethodPost, requestURL, nil)
 	if err != nil {
 		return 0, nil, err
@@ -92,7 +92,7 @@ func (bc *Client) Repay(asset, symbol, amount string, isIsolated bool) (uint64, 
 	var (
 		result marginCommonResult
 	)
-	requestURL := fmt.Sprintf("%s/sapi/v1/margin/repay", apiBaseURL)
+	requestURL := fmt.Sprintf("%s/sapi/v1/margin/repay", bc.apiBaseURL)
 	req, err := NewRequestBuilder(http.MethodPost, requestURL, nil)
 	if err != nil {
 		return 0, nil, err
@@ -117,7 +117,7 @@ func (bc *Client) GetMarginAsset(asset string) (MarginAsset, *FwdData, error) {
 	var (
 		result MarginAsset
 	)
-	requestURL := fmt.Sprintf("%s/sapi/v1/margin/asset", apiBaseURL)
+	requestURL := fmt.Sprintf("%s/sapi/v1/margin/asset", bc.apiBaseURL)
 	req, err := NewRequestBuilder(http.MethodGet, requestURL, nil)
 	if err != nil {
 		return result, nil, err
@@ -135,7 +135,7 @@ func (bc *Client) GetMarginPair(symbol string) (MarginAsset, *FwdData, error) {
 	var (
 		result MarginAsset
 	)
-	requestURL := fmt.Sprintf("%s/sapi/v1/margin/pair", apiBaseURL)
+	requestURL := fmt.Sprintf("%s/sapi/v1/margin/pair", bc.apiBaseURL)
 	req, err := NewRequestBuilder(http.MethodGet, requestURL, nil)
 	if err != nil {
 		return result, nil, err
@@ -153,7 +153,7 @@ func (bc *Client) GetAllMarginAssets() ([]MarginAsset, *FwdData, error) {
 	var (
 		result []MarginAsset
 	)
-	requestURL := fmt.Sprintf("%s/sapi/v1/margin/allAssets", apiBaseURL)
+	requestURL := fmt.Sprintf("%s/sapi/v1/margin/allAssets", bc.apiBaseURL)
 	req, err := NewRequestBuilder(http.MethodGet, requestURL, nil)
 	if err != nil {
 		return result, nil, err
@@ -171,7 +171,7 @@ func (bc *Client) GetCrossMarginAccountDetails() (CrossMarginAccountDetails, *Fw
 	var (
 		result CrossMarginAccountDetails
 	)
-	requestURL := fmt.Sprintf("%s/sapi/v1/margin/account", apiBaseURL)
+	requestURL := fmt.Sprintf("%s/sapi/v1/margin/account", bc.apiBaseURL)
 	req, err := NewRequestBuilder(http.MethodGet, requestURL, nil)
 	if err != nil {
 		return result, nil, err
@@ -189,7 +189,7 @@ func (bc *Client) GetMaxBorrowable(asset, isolatedSymbol string) (MaxBorrowableR
 	var (
 		result MaxBorrowableResult
 	)
-	requestURL := fmt.Sprintf("%s/sapi/v1/margin/maxBorrowable", apiBaseURL)
+	requestURL := fmt.Sprintf("%s/sapi/v1/margin/maxBorrowable", bc.apiBaseURL)
 	req, err := NewRequestBuilder(http.MethodGet, requestURL, nil)
 	if err != nil {
 		return result, nil, err
@@ -210,7 +210,7 @@ func (bc *Client) TransferIsolatedMargin(asset, symbol, amount string, transFrom
 	var (
 		result marginCommonResult
 	)
-	requestURL := fmt.Sprintf("%s/sapi/v1/margin/isolated/transfer", apiBaseURL)
+	requestURL := fmt.Sprintf("%s/sapi/v1/margin/isolated/transfer", bc.apiBaseURL)
 	req, err := NewRequestBuilder(http.MethodPost, requestURL, nil)
 	if err != nil {
 		return 0, nil, err
@@ -237,7 +237,7 @@ func (bc *Client) GetIsolatedMarginAccountDetails(symbols []string) (IsolatedMar
 	if len(symbols) > 5 {
 		return result, nil, fmt.Errorf("the api only supports max 5 symbols")
 	}
-	requestURL := fmt.Sprintf("%s/sapi/v1/margin/isolated/account", apiBaseURL)
+	requestURL := fmt.Sprintf("%s/sapi/v1/margin/isolated/account", bc.apiBaseURL)
 	req, err := NewRequestBuilder(http.MethodGet, requestURL, nil)
 	if err != nil {
 		return IsolatedMarginAccountDetails{}, nil, err
