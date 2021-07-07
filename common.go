@@ -356,6 +356,33 @@ type CreateOrderResult struct {
 	Side                string `json:"side"`
 }
 
+// FutureOrder ...
+type FutureOrder struct {
+	ClientOrderID            string `json:"clientOrderId"`
+	CummulativeQuantity      string `json:"cumQty"`
+	CummulativeQuoteQuantity string `json:"cumQuote"`
+	ExecutedQuantity         string `json:"executedQty"`
+	OrderID                  uint64 `json:"orderId"`
+	AveragePrice             string `json:"avgPrice"`
+	OriginQuantity           string `json:"origQty"`
+	Price                    string `json:"price"`
+	ReduceOnly               bool   `json:"reduceOnly"`
+	Side                     string `json:"side"`
+	PositionSide             string `json:"positionSide"`
+	Status                   string `json:"status"`
+	StopPrice                string `json:"stopPrice"`
+	ClosePosition            bool   `json:"closePosition"`
+	Symbol                   string `json:"symbol"`
+	TimeInForce              string `json:"timeInForce"`
+	Type                     string `json:"type"`
+	OriginType               string `json:"origType"`
+	ActivatePrice            string `json:"activatePrice"`
+	PriceRate                string `json:"priceRate"`
+	UpdateTime               uint64 `json:"updateTime"`
+	WorkingType              string `json:"workingType"`
+	PriceProtect             bool   `json:"priceProtect"`
+}
+
 // MarginAsset ..
 type MarginAsset struct {
 	AssetFullName  string `json:"assetFullName"`
