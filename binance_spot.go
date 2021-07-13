@@ -30,7 +30,7 @@ func (bc *Client) GetAccountState() (AccountState, error) {
 	var (
 		response AccountState
 	)
-	requestURL := fmt.Sprintf("%s/api/v3/account", apiBaseURL)
+	requestURL := fmt.Sprintf("%s/api/v3/account", bc.apiBaseURL)
 	req, err := NewRequestBuilder(http.MethodGet, requestURL, nil)
 	if err != nil {
 		return AccountState{}, err
@@ -45,7 +45,7 @@ func (bc *Client) CreateOrder(side, symbol, ordType, timeInForce, price, quantit
 	var (
 		response CreateOrderResult
 	)
-	requestURL := fmt.Sprintf("%s/api/v3/order", apiBaseURL)
+	requestURL := fmt.Sprintf("%s/api/v3/order", bc.apiBaseURL)
 	req, err := NewRequestBuilder(http.MethodPost, requestURL, nil)
 	if err != nil {
 		return response, nil, err
@@ -67,7 +67,7 @@ func (bc *Client) GetOpenOrders(symbol string) ([]*OpenOrder, *FwdData, error) {
 	var (
 		response = make([]*OpenOrder, 0)
 	)
-	requestURL := fmt.Sprintf("%s/api/v3/openOrders", apiBaseURL)
+	requestURL := fmt.Sprintf("%s/api/v3/openOrders", bc.apiBaseURL)
 	req, err := NewRequestBuilder(http.MethodGet, requestURL, nil)
 	if err != nil {
 		return nil, nil, err
@@ -84,7 +84,7 @@ func (bc *Client) GetOpenOrders(symbol string) ([]*OpenOrder, *FwdData, error) {
 // OrderStatus ...
 func (bc *Client) OrderStatus(symbol string, id int64) (*OpenOrder, *FwdData, error) {
 	result := OpenOrder{}
-	requestURL := fmt.Sprintf("%s/api/v3/order", apiBaseURL)
+	requestURL := fmt.Sprintf("%s/api/v3/order", bc.apiBaseURL)
 	req, err := NewRequestBuilder(http.MethodGet, requestURL, nil)
 	if err != nil {
 		return nil, nil, err
@@ -100,7 +100,7 @@ func (bc *Client) OrderStatus(symbol string, id int64) (*OpenOrder, *FwdData, er
 // GetTradeHistory query recent trade list
 func (bc *Client) GetTradeHistory(symbol string, limit int64) (TradeHistoryList, *FwdData, error) {
 	result := TradeHistoryList{}
-	requestURL := fmt.Sprintf("%s/api/v3/trades", apiBaseURL)
+	requestURL := fmt.Sprintf("%s/api/v3/trades", bc.apiBaseURL)
 	req, err := NewRequestBuilder(http.MethodGet, requestURL, nil)
 	if err != nil {
 		return nil, nil, err
@@ -116,7 +116,7 @@ func (bc *Client) GetTradeHistory(symbol string, limit int64) (TradeHistoryList,
 // GetAccountTradeHistory query account recent trade list
 func (bc *Client) GetAccountTradeHistory(symbol, startTime, endTime string, limit int64, fromID string) (AccountTradeHistoryList, *FwdData, error) {
 	result := AccountTradeHistoryList{}
-	requestURL := fmt.Sprintf("%s/api/v3/myTrades", apiBaseURL)
+	requestURL := fmt.Sprintf("%s/api/v3/myTrades", bc.apiBaseURL)
 	req, err := NewRequestBuilder(http.MethodGet, requestURL, nil)
 	if err != nil {
 		return nil, nil, err
@@ -146,7 +146,7 @@ func (bc *Client) GetAccountTradeHistory(symbol, startTime, endTime string, limi
 // WithdrawHistory query recent withdraw list
 func (bc *Client) WithdrawHistory(coin, startTime, endTime, status string) (WithdrawalsList, *FwdData, error) {
 	result := WithdrawalsList{}
-	requestURL := fmt.Sprintf("%s/sapi/v1/capital/withdraw/history", apiBaseURL)
+	requestURL := fmt.Sprintf("%s/sapi/v1/capital/withdraw/history", bc.apiBaseURL)
 	req, err := NewRequestBuilder(http.MethodGet, requestURL, nil)
 	if err != nil {
 		return WithdrawalsList{}, nil, err
@@ -175,7 +175,7 @@ func (bc *Client) WithdrawHistory(coin, startTime, endTime, status string) (With
 // DepositHistory query recent withdraw list
 func (bc *Client) DepositHistory(coin, status, startTime, endTime string) (DepositsList, *FwdData, error) {
 	result := DepositsList{}
-	requestURL := fmt.Sprintf("%s/sapi/v1/capital/deposit/hisrec", apiBaseURL)
+	requestURL := fmt.Sprintf("%s/sapi/v1/capital/deposit/hisrec", bc.apiBaseURL)
 	req, err := NewRequestBuilder(http.MethodGet, requestURL, nil)
 	if err != nil {
 		return DepositsList{}, nil, err
@@ -204,7 +204,7 @@ func (bc *Client) DepositHistory(coin, status, startTime, endTime string) (Depos
 // CancelOrder cancel an order
 func (bc *Client) CancelOrder(symbol string, id int64) (CancelResult, *FwdData, error) {
 	result := CancelResult{}
-	requestURL := fmt.Sprintf("%s/api/v3/order", apiBaseURL)
+	requestURL := fmt.Sprintf("%s/api/v3/order", bc.apiBaseURL)
 	req, err := NewRequestBuilder(http.MethodDelete, requestURL, nil)
 	if err != nil {
 		return result, nil, err
@@ -220,7 +220,7 @@ func (bc *Client) CancelOrder(symbol string, id int64) (CancelResult, *FwdData, 
 // CancelAllOrder cancel all orders
 func (bc *Client) CancelAllOrder(symbol string) ([]BOrder, *FwdData, error) {
 	var result []BOrder
-	requestURL := fmt.Sprintf("%s/api/v3/openOrders", apiBaseURL)
+	requestURL := fmt.Sprintf("%s/api/v3/openOrders", bc.apiBaseURL)
 	req, err := NewRequestBuilder(http.MethodDelete, requestURL, nil)
 	if err != nil {
 		return result, nil, err
@@ -235,7 +235,7 @@ func (bc *Client) CancelAllOrder(symbol string) ([]BOrder, *FwdData, error) {
 // Withdraw ...
 func (bc *Client) Withdraw(coin, amount, address, network, name, orderID string) (string, *FwdData, error) {
 	var result WithdrawResult
-	requestURL := fmt.Sprintf("%s/sapi/v1/capital/withdraw/apply", apiBaseURL)
+	requestURL := fmt.Sprintf("%s/sapi/v1/capital/withdraw/apply", bc.apiBaseURL)
 	req, err := NewRequestBuilder(http.MethodPost, requestURL, nil)
 	if err != nil {
 		return "", nil, err
@@ -260,7 +260,7 @@ func (bc *Client) TransferToMainAccount(asset, amount string) (int64, *FwdData, 
 	var (
 		result TransferToMasterResponse
 	)
-	requestURL := fmt.Sprintf("%s/sapi/v1/sub-account/transfer/subToMaster", apiBaseURL)
+	requestURL := fmt.Sprintf("%s/sapi/v1/sub-account/transfer/subToMaster", bc.apiBaseURL)
 	req, err := NewRequestBuilder(http.MethodPost, requestURL, nil)
 	if err != nil {
 		return 0, nil, err
@@ -281,7 +281,7 @@ func (bc *Client) SubAccountList(email, isFreeze string) (SubAccountResult, *Fwd
 	var (
 		result SubAccountResult
 	)
-	requestURL := fmt.Sprintf("%s/sapi/v1/sub-account/list", apiBaseURL)
+	requestURL := fmt.Sprintf("%s/sapi/v1/sub-account/list", bc.apiBaseURL)
 	req, err := NewRequestBuilder(http.MethodGet, requestURL, nil)
 	if err != nil {
 		return result, nil, err
@@ -306,7 +306,7 @@ func (bc *Client) SubAccountTransferHistory(fromEmail, toEmail, startTime, endTi
 	var (
 		result SubAccountTransferHistoryResult
 	)
-	requestURL := fmt.Sprintf("%s/sapi/v1/sub-account/sub/transfer/history", apiBaseURL)
+	requestURL := fmt.Sprintf("%s/sapi/v1/sub-account/sub/transfer/history", bc.apiBaseURL)
 	req, err := NewRequestBuilder(http.MethodGet, requestURL, nil)
 	if err != nil {
 		return result, nil, err
@@ -333,7 +333,7 @@ func (bc *Client) AssetTransfer(fromEmail, fromAccType, toEmail, toAccountType, 
 	var (
 		result TransferResult
 	)
-	requestURL := fmt.Sprintf("%s/sapi/v1/sub-account/universalTransfer", apiBaseURL)
+	requestURL := fmt.Sprintf("%s/sapi/v1/sub-account/universalTransfer", bc.apiBaseURL)
 	req, err := NewRequestBuilder(http.MethodPost, requestURL, nil)
 	if err != nil {
 		return result, nil, err
@@ -361,7 +361,7 @@ func (bc *Client) SubAccountAssetBalances(email string) (SubAccountAssetBalances
 	var (
 		result SubAccountAssetBalancesResult
 	)
-	requestURL := fmt.Sprintf("%s/sapi/v3/sub-account/assets", apiBaseURL)
+	requestURL := fmt.Sprintf("%s/sapi/v3/sub-account/assets", bc.apiBaseURL)
 	req, err := NewRequestBuilder(http.MethodGet, requestURL, nil)
 	if err != nil {
 		return result, nil, err
@@ -379,7 +379,7 @@ func (bc *Client) SubAccountAssetBalances(email string) (SubAccountAssetBalances
 // GetDepositAddress ...
 func (bc *Client) GetDepositAddress(asset, network string) (BDepositAddress, *FwdData, error) {
 	var result BDepositAddress
-	requestURL := fmt.Sprintf("%s/sapi/v1/capital/deposit/address", apiBaseURL)
+	requestURL := fmt.Sprintf("%s/sapi/v1/capital/deposit/address", bc.apiBaseURL)
 	req, err := NewRequestBuilder(http.MethodGet, requestURL, nil)
 	if err != nil {
 		return result, nil, err
@@ -400,7 +400,7 @@ func (bc *Client) GetDepositAddress(asset, network string) (BDepositAddress, *Fw
 // GetAllAssetDetail ...
 func (bc *Client) GetAllAssetDetail() (AssetDetailResult, *FwdData, error) {
 	var result AssetDetailResult
-	requestURL := fmt.Sprintf("%s/sapi/v1/asset/assetDetail", apiBaseURL)
+	requestURL := fmt.Sprintf("%s/sapi/v1/asset/assetDetail", bc.apiBaseURL)
 	req, err := NewRequestBuilder(http.MethodGet, requestURL, nil)
 	if err != nil {
 		return result, nil, err
@@ -417,7 +417,7 @@ func (bc *Client) GetAllAssetDetail() (AssetDetailResult, *FwdData, error) {
 // GetExchangeInfo ...
 func (bc *Client) GetExchangeInfo() (ExchangeInfo, *FwdData, error) {
 	var result ExchangeInfo
-	requestURL := fmt.Sprintf("%s/api/v3/exchangeInfo", apiBaseURL)
+	requestURL := fmt.Sprintf("%s/api/v3/exchangeInfo", bc.apiBaseURL)
 	req, err := NewRequestBuilder(http.MethodGet, requestURL, nil)
 	if err != nil {
 		return result, nil, err
@@ -431,7 +431,7 @@ func (bc *Client) GetExchangeInfo() (ExchangeInfo, *FwdData, error) {
 // GetServerTime ...
 func (bc *Client) GetServerTime() (int64, *FwdData, error) {
 	var result ServerTime
-	requestURL := fmt.Sprintf("%s/api/v3/time", apiBaseURL)
+	requestURL := fmt.Sprintf("%s/api/v3/time", bc.apiBaseURL)
 	req, err := NewRequestBuilder(http.MethodGet, requestURL, nil)
 	if err != nil {
 		return 0, nil, err
@@ -446,7 +446,7 @@ func (bc *Client) GetServerTime() (int64, *FwdData, error) {
 func (bc *Client) AllCoinInfo() (AllCoinInfo, *FwdData, error) {
 	var result []CoinInfo
 
-	requestURL := fmt.Sprintf("%s/sapi/v1/capital/config/getall", apiBaseURL)
+	requestURL := fmt.Sprintf("%s/sapi/v1/capital/config/getall", bc.apiBaseURL)
 	req, err := NewRequestBuilder(http.MethodGet, requestURL, nil)
 	if err != nil {
 		return nil, nil, err
@@ -464,7 +464,7 @@ func (bc *Client) AllCoinInfo() (AllCoinInfo, *FwdData, error) {
 func (bc *Client) GetOrderBook(symbol, limit string) (OrderBook, *FwdData, error) {
 	var result OrderBook
 
-	requestURL := fmt.Sprintf("%s/api/v3/depth", apiBaseURL)
+	requestURL := fmt.Sprintf("%s/api/v3/depth", bc.apiBaseURL)
 	req, err := NewRequestBuilder(http.MethodGet, requestURL, nil)
 	if err != nil {
 		return OrderBook{}, nil, err
@@ -480,7 +480,7 @@ func (bc *Client) GetOrderBook(symbol, limit string) (OrderBook, *FwdData, error
 // TickerData return ticker data
 func (bc *Client) TickerData() ([]TickerEntry, *FwdData, error) {
 	var result []TickerEntry
-	requestURL := fmt.Sprintf("%s/api/v3/ticker/bookTicker", apiBaseURL)
+	requestURL := fmt.Sprintf("%s/api/v3/ticker/bookTicker", bc.apiBaseURL)
 	req, err := NewRequestBuilder(http.MethodGet, requestURL, nil)
 	if err != nil {
 		return result, nil, err

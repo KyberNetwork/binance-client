@@ -6,17 +6,13 @@ import (
 	"strconv"
 )
 
-const (
-	futureAPIBaseURL = "https://fapi.binance.com"
-)
-
 // CreateFutureOrder ...
 func (bc *Client) CreateFutureOrder(symbol, side, positionSide, tradeType, timeInForce, reduceOnly, newClientOrderID, closePosition, workingType, priceProtect, newOrderRespType string,
 	price, stopPrice, activationPrice, callbackRate, quantity float64) (FutureOrder, error) {
 	var (
 		response FutureOrder
 	)
-	requestURL := fmt.Sprintf("%s/fapi/v1/order", futureAPIBaseURL)
+	requestURL := fmt.Sprintf("%s/fapi/v1/order", bc.futureAPIBaseURL)
 	req, err := NewRequestBuilder(http.MethodPost, requestURL, nil)
 	if err != nil {
 		return response, err
@@ -87,7 +83,7 @@ func (bc *Client) GetPositionInformation(symbol string) ([]PositionInformation, 
 		response []PositionInformation
 		rr       *http.Request
 	)
-	requestURL := fmt.Sprintf("%s/fapi/v2/positionRisk", futureAPIBaseURL)
+	requestURL := fmt.Sprintf("%s/fapi/v2/positionRisk", bc.futureAPIBaseURL)
 	req, err := NewRequestBuilder(http.MethodGet, requestURL, nil)
 	if err != nil {
 		return response, nil
@@ -121,7 +117,7 @@ func (bc *Client) FutureAccountBalance() ([]FutureAccountBalance, *FwdData, erro
 	var (
 		response []FutureAccountBalance
 	)
-	requestURL := fmt.Sprintf("%s/fapi/v2/balance", futureAPIBaseURL)
+	requestURL := fmt.Sprintf("%s/fapi/v2/balance", bc.futureAPIBaseURL)
 	req, err := NewRequestBuilder(http.MethodGet, requestURL, nil)
 	if err != nil {
 		return response, nil, err

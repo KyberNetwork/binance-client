@@ -14,17 +14,21 @@ const (
 
 // Client to interact with binance api
 type Client struct {
-	httpClient *http.Client
-	apiKey     string
-	secretKey  string
+	httpClient       *http.Client
+	apiKey           string
+	secretKey        string
+	apiBaseURL       string // for both spot and margin
+	futureAPIBaseURL string
 }
 
 // NewClient create new client object
-func NewClient(key, secret string) *Client {
+func NewClient(key, secret, apiBaseURL, futureAPIBaseURL string) *Client {
 	return &Client{
-		httpClient: &http.Client{Timeout: defaultTimeout},
-		apiKey:     key,
-		secretKey:  secret,
+		httpClient:       &http.Client{Timeout: defaultTimeout},
+		apiKey:           key,
+		secretKey:        secret,
+		apiBaseURL:       apiBaseURL,
+		futureAPIBaseURL: futureAPIBaseURL,
 	}
 }
 
@@ -32,7 +36,7 @@ func (bc *Client) createListenKey(apiPath string) (string, error) {
 	var (
 		listenKey ListenKey
 	)
-	requestURL := fmt.Sprintf("%s/%s", apiBaseURL, apiPath)
+	requestURL := fmt.Sprintf("%s/%s", bc.apiBaseURL, apiPath)
 	req, err := NewRequestBuilder(http.MethodPost, requestURL, nil)
 	if err != nil {
 		return "", err
@@ -47,7 +51,7 @@ func (bc *Client) createListenKey(apiPath string) (string, error) {
 }
 
 func (bc *Client) keepListenKeyAlive(listenKey, apiPath string) error {
-	requestURL := fmt.Sprintf("%s/%s", apiBaseURL, apiPath)
+	requestURL := fmt.Sprintf("%s/%s", bc.apiBaseURL, apiPath)
 	req, err := NewRequestBuilder(http.MethodPut, requestURL, nil)
 	if err != nil {
 		return err

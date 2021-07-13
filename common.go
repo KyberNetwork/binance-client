@@ -3,7 +3,6 @@ package binance
 import "encoding/json"
 
 const (
-	apiBaseURL   = "https://api.binance.com" // for both spot and margin
 	apiKeyHeader = "X-MBX-APIKEY"
 
 	WalletSpot           = "SPOT"
