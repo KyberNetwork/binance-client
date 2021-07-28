@@ -22,13 +22,13 @@ type Client struct {
 }
 
 // NewClient create new client object
-func NewClient(key, secret, apiBaseURL, futureAPIBaseURL string) *Client {
+func NewClient(key, secret, apiBaseURL, futureAPIBaseURL string, hc *http.Client) *Client {
 	return &Client{
-		httpClient:       &http.Client{Timeout: defaultTimeout},
 		apiKey:           key,
 		secretKey:        secret,
 		apiBaseURL:       apiBaseURL,
 		futureAPIBaseURL: futureAPIBaseURL,
+		httpClient:       hc,
 	}
 }
 
