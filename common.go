@@ -536,3 +536,49 @@ type IsolatedMarginAccountDetails struct {
 	TotalLiabilityOfBtc string                    `json:"totalLiabilityOfBtc"`
 	TotalNetAssetOfBtc  string                    `json:"totalNetAssetOfBtc"`
 }
+
+// USDFutureAccountSummary https://binance-docs.github.io/apidocs/spot/en/#get-summary-of-sub-account-39-s-futures-account-v2-for-master-account
+type USDFutureAccountSummary struct {
+	TotalInitialMargin          string                   `json:"totalInitialMargin"`
+	TotalMaintenanceMargin      string                   `json:"totalMaintenanceMargin"`
+	TotalMarginBalance          string                   `json:"totalMarginBalance"`
+	TotalOpenOrderInitialMargin string                   `json:"totalOpenOrderInitialMargin"`
+	TotalPositionInitialMargin  string                   `json:"totalPositionInitialMargin"`
+	TotalUnrealizedProfit       string                   `json:"totalUnrealizedProfit"`
+	TotalWalletBalance          string                   `json:"totalWalletBalance"`
+	Asset                       string                   `json:"asset"`
+	SubAccountList              []USDFutureAccountDetail `json:"subAccountList"`
+}
+
+type USDFutureAccountDetail struct {
+	Email                       string `json:"email"`
+	TotalInitialMargin          string `json:"totalInitialMargin"`
+	TotalMaintenanceMargin      string `json:"totalMaintenanceMargin"`
+	TotalMarginBalance          string `json:"totalMarginBalance"`
+	TotalOpenOrderInitialMargin string `json:"totalOpenOrderInitialMargin"`
+	TotalPositionInitialMargin  string `json:"totalPositionInitialMargin"`
+	TotalUnrealizedProfit       string `json:"totalUnrealizedProfit"`
+	TotalWalletBalance          string `json:"totalWalletBalance"`
+	Asset                       string `json:"asset"`
+}
+
+type CoinFutureAccountDetail struct {
+	Email                 string `json:"email"`
+	TotalMarginBalance    string `json:"totalMarginBalance"`
+	TotalUnrealizedProfit string `json:"totalUnrealizedProfit"`
+	TotalWalletBalance    string `json:"totalWalletBalance"`
+	Asset                 string `json:"asset"`
+}
+
+type CoinFutureAccountSummary struct {
+	TotalMarginBalanceOfBTC    string                    `json:"totalMarginBalanceOfBTC"`
+	TotalUnrealizedProfitOfBTC string                    `json:"totalUnrealizedProfitOfBTC"`
+	TotalWalletBalanceOfBTC    string                    `json:"totalWalletBalanceOfBTC"`
+	Asset                      string                    `json:"asset"`
+	SubAccountList             []CoinFutureAccountDetail `json:"subAccountList"`
+}
+
+type SubAccountFutureSummaryResponse struct {
+	USDFutureAccountSummary  USDFutureAccountSummary  `json:"futureAccountSummaryResp"`
+	CoinFutureAccountSummary CoinFutureAccountSummary `json:"deliveryAccountSummaryResp"`
+}
