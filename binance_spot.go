@@ -492,3 +492,30 @@ func (bc *Client) TickerData() ([]TickerEntry, *FwdData, error) {
 	}
 	return result, fwd, err
 }
+
+func (bc *Client) GetSubAccountFutureSummary(futuresType, page, limit int) (SubAccountFutureSummaryResponse, *FwdData, error) {
+	var result SubAccountFutureSummaryResponse
+	requestURL := fmt.Sprintf("%s/sapi/v2/sub-account/futures/accountSummary", bc.apiBaseURL)
+	req, err := NewRequestBuilder(http.MethodGet, requestURL, nil)
+	if err != nil {
+		return result, nil, err
+	}
+	req = req.WithParam("futuresType", strconv.FormatInt(int64(futuresType), 10))
+
+	if page < 1 {
+		page = 1
+	}
+	req = req.WithParam("page", strconv.FormatInt(int64(page), 10))
+
+	if limit == 0 {
+		limit = 10
+	}
+	req = req.WithParam("limit", strconv.FormatInt(int64(limit), 10))
+
+	rr := req.WithHeader(apiKeyHeader, bc.apiKey).SignedRequest(bc.secretKey)
+	fwd, err := bc.doRequest(rr, &result)
+	if err != nil {
+		return result, fwd, err
+	}
+	return result, fwd, err
+}
