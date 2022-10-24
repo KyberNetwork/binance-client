@@ -519,3 +519,21 @@ func (bc *Client) GetSubAccountFutureSummary(futuresType, page, limit int) (SubA
 	}
 	return result, fwd, err
 }
+
+func (bc *Client) GetSubAccountFutureDetails(email string, futuresType int) (SubAccountFutureDetailsResponse, *FwdData, error) {
+	var result SubAccountFutureDetailsResponse
+	requestURL := fmt.Sprintf("%s/sapi/v2/sub-account/futures/account", bc.apiBaseURL)
+	req, err := NewRequestBuilder(http.MethodGet, requestURL, nil)
+	if err != nil {
+		return result, nil, err
+	}
+	req = req.WithParam("email", email)
+	req = req.WithParam("futuresType", strconv.FormatInt(int64(futuresType), 10))
+
+	rr := req.WithHeader(apiKeyHeader, bc.apiKey).SignedRequest(bc.secretKey)
+	fwd, err := bc.doRequest(rr, &result)
+	if err != nil {
+		return result, fwd, err
+	}
+	return result, fwd, err
+}

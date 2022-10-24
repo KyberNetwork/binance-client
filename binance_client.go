@@ -87,7 +87,12 @@ func (bc *Client) doRequest(req *http.Request, data interface{}) (*FwdData, erro
 			return fwd, fmt.Errorf("failed to parse data into struct: %s %w", respBody, err)
 		}
 	default:
-		return fwd, fmt.Errorf("%d, %s", resp.StatusCode, string(respBody))
+		var responseErr = struct {
+			Code int    `json:"code"`
+			Msg  string `json:"msg"`
+		}{}
+		_ = json.Unmarshal(respBody, &responseErr)
+		return fwd, fmt.Errorf("%w, raw: %d, %s: ", newAPIError(responseErr.Code, responseErr.Msg), resp.StatusCode, string(respBody))
 	}
 	return fwd, nil
 }

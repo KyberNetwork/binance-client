@@ -1,6 +1,12 @@
 package binance
 
-import "encoding/json"
+import (
+	"encoding/json"
+	"errors"
+	"fmt"
+
+	"github.com/shopspring/decimal"
+)
 
 const (
 	apiKeyHeader = "X-MBX-APIKEY"
@@ -22,6 +28,30 @@ type FwdData struct {
 	Status      int
 	ContentType string
 	Data        []byte
+}
+
+type APIError struct {
+	Code int
+	Msg  string
+}
+
+func (e APIError) Error() string {
+	return fmt.Sprintf("code: %d, msg: %s", e.Code, e.Msg)
+}
+
+func newAPIError(code int, msg string) error {
+	return &APIError{
+		Code: code,
+		Msg:  msg,
+	}
+}
+
+func ToAPIError(err error) (*APIError, bool) {
+	var apiErr APIError
+	if errors.As(err, &apiErr) {
+		return &apiErr, true
+	}
+	return nil, false
 }
 
 // AccountState is balance state of tokens
@@ -539,41 +569,41 @@ type IsolatedMarginAccountDetails struct {
 
 // USDFutureAccountSummary https://binance-docs.github.io/apidocs/spot/en/#get-summary-of-sub-account-39-s-futures-account-v2-for-master-account
 type USDFutureAccountSummary struct {
-	TotalInitialMargin          string                   `json:"totalInitialMargin"`
-	TotalMaintenanceMargin      string                   `json:"totalMaintenanceMargin"`
-	TotalMarginBalance          string                   `json:"totalMarginBalance"`
-	TotalOpenOrderInitialMargin string                   `json:"totalOpenOrderInitialMargin"`
-	TotalPositionInitialMargin  string                   `json:"totalPositionInitialMargin"`
-	TotalUnrealizedProfit       string                   `json:"totalUnrealizedProfit"`
-	TotalWalletBalance          string                   `json:"totalWalletBalance"`
+	TotalInitialMargin          decimal.Decimal          `json:"totalInitialMargin"`
+	TotalMaintenanceMargin      decimal.Decimal          `json:"totalMaintenanceMargin"`
+	TotalMarginBalance          decimal.Decimal          `json:"totalMarginBalance"`
+	TotalOpenOrderInitialMargin decimal.Decimal          `json:"totalOpenOrderInitialMargin"`
+	TotalPositionInitialMargin  decimal.Decimal          `json:"totalPositionInitialMargin"`
+	TotalUnrealizedProfit       decimal.Decimal          `json:"totalUnrealizedProfit"`
+	TotalWalletBalance          decimal.Decimal          `json:"totalWalletBalance"`
 	Asset                       string                   `json:"asset"`
 	SubAccountList              []USDFutureAccountDetail `json:"subAccountList"`
 }
 
 type USDFutureAccountDetail struct {
-	Email                       string `json:"email"`
-	TotalInitialMargin          string `json:"totalInitialMargin"`
-	TotalMaintenanceMargin      string `json:"totalMaintenanceMargin"`
-	TotalMarginBalance          string `json:"totalMarginBalance"`
-	TotalOpenOrderInitialMargin string `json:"totalOpenOrderInitialMargin"`
-	TotalPositionInitialMargin  string `json:"totalPositionInitialMargin"`
-	TotalUnrealizedProfit       string `json:"totalUnrealizedProfit"`
-	TotalWalletBalance          string `json:"totalWalletBalance"`
-	Asset                       string `json:"asset"`
+	Email                       string          `json:"email"`
+	TotalInitialMargin          decimal.Decimal `json:"totalInitialMargin"`
+	TotalMaintenanceMargin      decimal.Decimal `json:"totalMaintenanceMargin"`
+	TotalMarginBalance          decimal.Decimal `json:"totalMarginBalance"`
+	TotalOpenOrderInitialMargin decimal.Decimal `json:"totalOpenOrderInitialMargin"`
+	TotalPositionInitialMargin  decimal.Decimal `json:"totalPositionInitialMargin"`
+	TotalUnrealizedProfit       decimal.Decimal `json:"totalUnrealizedProfit"`
+	TotalWalletBalance          decimal.Decimal `json:"totalWalletBalance"`
+	Asset                       string          `json:"asset"`
 }
 
 type CoinFutureAccountDetail struct {
-	Email                 string `json:"email"`
-	TotalMarginBalance    string `json:"totalMarginBalance"`
-	TotalUnrealizedProfit string `json:"totalUnrealizedProfit"`
-	TotalWalletBalance    string `json:"totalWalletBalance"`
-	Asset                 string `json:"asset"`
+	Email                 string          `json:"email"`
+	TotalMarginBalance    decimal.Decimal `json:"totalMarginBalance"`
+	TotalUnrealizedProfit decimal.Decimal `json:"totalUnrealizedProfit"`
+	TotalWalletBalance    decimal.Decimal `json:"totalWalletBalance"`
+	Asset                 string          `json:"asset"`
 }
 
 type CoinFutureAccountSummary struct {
-	TotalMarginBalanceOfBTC    string                    `json:"totalMarginBalanceOfBTC"`
-	TotalUnrealizedProfitOfBTC string                    `json:"totalUnrealizedProfitOfBTC"`
-	TotalWalletBalanceOfBTC    string                    `json:"totalWalletBalanceOfBTC"`
+	TotalMarginBalanceOfBTC    decimal.Decimal           `json:"totalMarginBalanceOfBTC"`
+	TotalUnrealizedProfitOfBTC decimal.Decimal           `json:"totalUnrealizedProfitOfBTC"`
+	TotalWalletBalanceOfBTC    decimal.Decimal           `json:"totalWalletBalanceOfBTC"`
 	Asset                      string                    `json:"asset"`
 	SubAccountList             []CoinFutureAccountDetail `json:"subAccountList"`
 }
@@ -581,4 +611,53 @@ type CoinFutureAccountSummary struct {
 type SubAccountFutureSummaryResponse struct {
 	USDFutureAccountSummary  USDFutureAccountSummary  `json:"futureAccountSummaryResp"`
 	CoinFutureAccountSummary CoinFutureAccountSummary `json:"deliveryAccountSummaryResp"`
+}
+
+type SubAccountFutureDetailsResponse struct {
+	FutureAccountResp struct {
+		Email  string `json:"email"`
+		Assets []struct {
+			Asset                  string          `json:"asset"`
+			InitialMargin          decimal.Decimal `json:"initialMargin"`
+			MaintenanceMargin      decimal.Decimal `json:"maintenanceMargin"`
+			MarginBalance          decimal.Decimal `json:"marginBalance"`
+			MaxWithdrawAmount      decimal.Decimal `json:"maxWithdrawAmount"`
+			OpenOrderInitialMargin decimal.Decimal `json:"openOrderInitialMargin"`
+			PositionInitialMargin  decimal.Decimal `json:"positionInitialMargin"`
+			UnrealizedProfit       decimal.Decimal `json:"unrealizedProfit"`
+			WalletBalance          decimal.Decimal `json:"walletBalance"`
+		} `json:"assets"`
+		CanDeposit                  bool            `json:"canDeposit"`
+		CanTrade                    bool            `json:"canTrade"`
+		CanWithdraw                 bool            `json:"canWithdraw"`
+		FeeTier                     int             `json:"feeTier"`
+		MaxWithdrawAmount           decimal.Decimal `json:"maxWithdrawAmount"`
+		TotalInitialMargin          decimal.Decimal `json:"totalInitialMargin"`
+		TotalMaintenanceMargin      decimal.Decimal `json:"totalMaintenanceMargin"`
+		TotalMarginBalance          decimal.Decimal `json:"totalMarginBalance"`
+		TotalOpenOrderInitialMargin decimal.Decimal `json:"totalOpenOrderInitialMargin"`
+		TotalPositionInitialMargin  decimal.Decimal `json:"totalPositionInitialMargin"`
+		TotalUnrealizedProfit       decimal.Decimal `json:"totalUnrealizedProfit"`
+		TotalWalletBalance          decimal.Decimal `json:"totalWalletBalance"`
+		UpdateTime                  int64           `json:"updateTime"`
+	} `json:"futureAccountResp"`
+	DeliveryAccountResp struct {
+		Email  string `json:"email"`
+		Assets []struct {
+			Asset                  string          `json:"asset"`
+			InitialMargin          decimal.Decimal `json:"initialMargin"`
+			MaintenanceMargin      decimal.Decimal `json:"maintenanceMargin"`
+			MarginBalance          decimal.Decimal `json:"marginBalance"`
+			MaxWithdrawAmount      decimal.Decimal `json:"maxWithdrawAmount"`
+			OpenOrderInitialMargin decimal.Decimal `json:"openOrderInitialMargin"`
+			PositionInitialMargin  decimal.Decimal `json:"positionInitialMargin"`
+			UnrealizedProfit       decimal.Decimal `json:"unrealizedProfit"`
+			WalletBalance          decimal.Decimal `json:"walletBalance"`
+		} `json:"assets"`
+		CanDeposit  bool  `json:"canDeposit"`
+		CanTrade    bool  `json:"canTrade"`
+		CanWithdraw bool  `json:"canWithdraw"`
+		FeeTier     int   `json:"feeTier"`
+		UpdateTime  int64 `json:"updateTime"`
+	} `json:"deliveryAccountResp"`
 }
