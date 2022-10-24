@@ -47,9 +47,9 @@ func newAPIError(code int, msg string) error {
 }
 
 func ToAPIError(err error) (*APIError, bool) {
-	var apiErr APIError
+	var apiErr *APIError
 	if errors.As(err, &apiErr) {
-		return &apiErr, true
+		return apiErr, true
 	}
 	return nil, false
 }
