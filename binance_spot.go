@@ -4,6 +4,8 @@ import (
 	"fmt"
 	"net/http"
 	"strconv"
+
+	"github.com/shopspring/decimal"
 )
 
 // ListenKey is listen for user data stream
@@ -529,6 +531,31 @@ func (bc *Client) GetSubAccountFutureDetails(email string, futuresType int) (Sub
 	}
 	req = req.WithParam("email", email)
 	req = req.WithParam("futuresType", strconv.FormatInt(int64(futuresType), 10))
+
+	rr := req.WithHeader(apiKeyHeader, bc.apiKey).SignedRequest(bc.secretKey)
+	fwd, err := bc.doRequest(rr, &result)
+	if err != nil {
+		return result, fwd, err
+	}
+	return result, fwd, err
+}
+
+type FundingWalletBalance struct {
+	Asset        string          `json:"asset"`
+	Free         decimal.Decimal `json:"free"`
+	Locked       decimal.Decimal `json:"locked"`
+	Freeze       decimal.Decimal `json:"freeze"`
+	Withdrawing  decimal.Decimal `json:"withdrawing"`
+	BtcValuation decimal.Decimal `json:"btcValuation"`
+}
+
+func (bc *Client) GetFundingWallet() ([]FundingWalletBalance, *FwdData, error) {
+	var result []FundingWalletBalance
+	requestURL := fmt.Sprintf("%s/sapi/v1/asset/get-funding-asset", bc.apiBaseURL)
+	req, err := NewRequestBuilder(http.MethodGet, requestURL, nil)
+	if err != nil {
+		return result, nil, err
+	}
 
 	rr := req.WithHeader(apiKeyHeader, bc.apiKey).SignedRequest(bc.secretKey)
 	fwd, err := bc.doRequest(rr, &result)
