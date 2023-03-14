@@ -552,7 +552,7 @@ type FundingWalletBalance struct {
 func (bc *Client) GetFundingWallet() ([]FundingWalletBalance, *FwdData, error) {
 	var result []FundingWalletBalance
 	requestURL := fmt.Sprintf("%s/sapi/v1/asset/get-funding-asset", bc.apiBaseURL)
-	req, err := NewRequestBuilder(http.MethodGet, requestURL, nil)
+	req, err := NewRequestBuilder(http.MethodPost, requestURL, nil)
 	if err != nil {
 		return result, nil, err
 	}
