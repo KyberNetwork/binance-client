@@ -2,8 +2,14 @@ package binance
 
 import (
 	"fmt"
+	"github.com/shopspring/decimal"
 	"net/http"
 	"strconv"
+)
+
+var (
+	USDMAPI  = "https://fapi.binance.com"
+	COINMAPI = "https://dapi.binance.com"
 )
 
 // CreateFutureOrder ...
@@ -101,15 +107,15 @@ func (bc *Client) GetPositionInformation(symbol string) ([]PositionInformation, 
 
 // FutureAccountBalance ...
 type FutureAccountBalance struct {
-	AccountAlias       string `json:"accountAlias"`
-	Asset              string `json:"asset"`
-	Balance            string `json:"balance"`
-	CrossWalletBalance string `json:"crossWalletBalance"`
-	CrossUnPNL         string `json:"crossUnPnl"`
-	AvailableBalance   string `json:"availableBalance"`
-	MaxWithdrawAmount  string `json:"maxWithdrawAmount"`
-	MarginAvailable    bool   `json:"marginAvailable"`
-	UpdateTime         uint64 `json:"updateTime"`
+	AccountAlias       string          `json:"accountAlias"`
+	Asset              string          `json:"asset"`
+	Balance            decimal.Decimal `json:"balance"`
+	CrossWalletBalance decimal.Decimal `json:"crossWalletBalance"`
+	CrossUnPNL         decimal.Decimal `json:"crossUnPnl"`
+	AvailableBalance   decimal.Decimal `json:"availableBalance"`
+	MaxWithdrawAmount  decimal.Decimal `json:"maxWithdrawAmount"`
+	MarginAvailable    bool            `json:"marginAvailable"`
+	UpdateTime         uint64          `json:"updateTime"`
 }
 
 // FutureAccountBalance ...
@@ -118,6 +124,33 @@ func (bc *Client) FutureAccountBalance() ([]FutureAccountBalance, *FwdData, erro
 		response []FutureAccountBalance
 	)
 	requestURL := fmt.Sprintf("%s/fapi/v2/balance", bc.futureAPIBaseURL)
+	req, err := NewRequestBuilder(http.MethodGet, requestURL, nil)
+	if err != nil {
+		return response, nil, err
+	}
+	rr := req.WithHeader(apiKeyHeader, bc.apiKey).
+		SignedRequest(bc.secretKey)
+	fwd, err := bc.doRequest(rr, &response)
+	return response, fwd, err
+}
+
+type CoinMFutureAccountBalance struct {
+	AccountAlias       string          `json:"accountAlias"`
+	Asset              string          `json:"asset"`
+	Balance            decimal.Decimal `json:"balance"`
+	WithdrawAvailable  decimal.Decimal `json:"withdrawAvailable"`
+	CrossWalletBalance decimal.Decimal `json:"crossWalletBalance"`
+	CrossUnPnl         decimal.Decimal `json:"crossUnPnl"`
+	AvailableBalance   decimal.Decimal `json:"availableBalance"`
+	UpdateTime         int64           `json:"updateTime"`
+}
+
+// CoinMFutureAccountBalance ...
+func (bc *Client) CoinMFutureAccountBalance() ([]CoinMFutureAccountBalance, *FwdData, error) {
+	var (
+		response []CoinMFutureAccountBalance
+	)
+	requestURL := fmt.Sprintf("%s/dapi/v1/balance", COINMAPI)
 	req, err := NewRequestBuilder(http.MethodGet, requestURL, nil)
 	if err != nil {
 		return response, nil, err
