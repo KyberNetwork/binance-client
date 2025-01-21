@@ -522,6 +522,27 @@ func (bc *Client) GetSubAccountFutureSummary(futuresType, page, limit int) (SubA
 	return result, fwd, err
 }
 
+type InventoryResponse struct {
+	Assets     map[string]string `json:"assets"`
+	UpdateTime int               `json:"updateTime"`
+}
+
+func (bc *Client) GetInventory() (InventoryResponse, *FwdData, error) {
+	var result InventoryResponse
+	requestURL := fmt.Sprintf("%s/sapi/v1/margin/available-inventory", bc.apiBaseURL)
+	req, err := NewRequestBuilder(http.MethodGet, requestURL, nil)
+	if err != nil {
+		return result, nil, err
+	}
+	req = req.WithParam("type", "MARGIN")
+	rr := req.WithHeader(apiKeyHeader, bc.apiKey).SignedRequest(bc.secretKey)
+	fwd, err := bc.doRequest(rr, &result)
+	if err != nil {
+		return result, fwd, err
+	}
+	return result, fwd, err
+}
+
 func (bc *Client) GetSubAccountFutureDetails(email string, futuresType int) (SubAccountFutureDetailsResponse, *FwdData, error) {
 	var result SubAccountFutureDetailsResponse
 	requestURL := fmt.Sprintf("%s/sapi/v2/sub-account/futures/account", bc.apiBaseURL)
